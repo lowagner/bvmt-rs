@@ -7,14 +7,18 @@ use crate::gpu::Synced;
 pub struct Pixels {
     pub(crate) size: Size2i,
     pub(crate) synced: Synced,
+    /// Invariant: this should be `Some(texture)` iff `self.synced.on_gpu()` is true.
+    // TODO: these invariants probably could be taken care of with `Synced` being a
+    //       nicer enum, e.g., `GpuOnly(Texture), CpuOnly(Array), Both(Array, Texture)`,
+    //       but i didn't want to deal with copying/moving the texture/array around
+    //       every time the sync state changed.
+    pub(crate) texture: Option<wgpu::Texture>,
     /// Rows of pixels from the top (y = 0) to the bottom (y = self.size.height() - 1),
     /// with each row going from left (x = 0) to right (x = self.size.width() - 1).
     /// Stored as `self.array[y][x]` for pixel at coordinate `(x, y)`.
     /// Invariant: each `Vec` has the correct size based on `self.size`,
     /// unless the pixels are stored only on the GPU.
     pub(crate) array: Vec<Vec<Color>>,
-    /// Invariant: this should be `Some(texture)` iff `self.synced.on_gpu()` is true.
-    pub(crate) texture: Option<wgpu::Texture>,
 }
 
 impl Pixels {
