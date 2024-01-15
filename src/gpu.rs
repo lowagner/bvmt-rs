@@ -1,10 +1,12 @@
 #![allow(dead_code)]
 
+use crate::color::*;
 use crate::dimensions::*;
 use crate::pixels::*;
 
 pub struct Gpu {
     device: wgpu::Device,
+    queue: wgpu::Queue,
 }
 
 impl Gpu {
@@ -33,7 +35,23 @@ impl Gpu {
     }
 
     // TODO: draw(from: &mut Pixels, from_rectangle: RectangleI, to: &mut Pixels, to_rectangle: RectangleI)
-    // TODO: draw(pixels: &mut Pixels, coordinates: CoordinatesI, color: Color)
+
+    pub fn draw(&mut self, pixels: &mut Pixels, coordinates: Vector2i, color: Color) {
+        let (width, height) = (pixels.width(), pixels.height());
+        if coordinates.x < 0
+            || coordinates.x >= width
+            || coordinates.y < 0
+            || coordinates.y >= height
+        {
+            return;
+        }
+        if pixels.synced.prefers_writing_to_cpu() {
+            pixels.array[coordinates.y as usize][coordinates.x as usize] = color;
+        } else {
+            // Write to GPU
+            todo!();
+        }
+    }
 
     pub fn ensure_up_to_date_on_gpu(pixels: &mut Pixels) {
         if !pixels.synced.needs_gpu_update() {
@@ -56,10 +74,18 @@ impl Gpu {
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub(crate) enum Synced {
+    /// Not synced, the data lives only in the CPU.
     CpuOnly,
+    /// Not synced, the data lives only in the GPU.
     GpuOnly,
+    /// Not synced, the CPU data is ahead.
     CpuAhead,
+    /// Not synced, the GPU data is ahead.
     GpuAhead,
+    /// Synced, but prefer making updates to the CPU version of the data.
+    ButCpuPreferred,
+    /// Synced, but prefer making updates to the GPU version of the data.
+    ButGpuPreferred,
 }
 
 impl Synced {
@@ -78,6 +104,22 @@ impl Synced {
     pub(crate) fn needs_cpu_update(&self) -> bool {
         matches!(self, Synced::GpuOnly | Synced::GpuAhead)
     }
+
+    pub(crate) fn prefers_writing_to_cpu(&self) -> bool {
+        // If already ahead on the CPU, then just keep writing there.
+        matches!(
+            self,
+            Synced::CpuOnly | Synced::CpuAhead | Synced::ButCpuPreferred
+        )
+    }
+
+    pub(crate) fn prefers_writing_to_gpu(&self) -> bool {
+        // If already ahead on the GPU, then just keep writing there.
+        matches!(
+            self,
+            Synced::GpuOnly | Synced::GpuAhead | Synced::ButGpuPreferred
+        )
+    }
 }
 
 #[cfg(test)]
@@ -90,6 +132,8 @@ mod test {
         assert_eq!(Synced::GpuOnly.on_cpu(), false);
         assert_eq!(Synced::CpuAhead.on_cpu(), true);
         assert_eq!(Synced::GpuAhead.on_cpu(), true);
+        assert_eq!(Synced::ButCpuPreferred.on_cpu(), true);
+        assert_eq!(Synced::ButGpuPreferred.on_cpu(), true);
     }
 
     #[test]
@@ -98,6 +142,8 @@ mod test {
         assert_eq!(Synced::GpuOnly.on_gpu(), true);
         assert_eq!(Synced::CpuAhead.on_gpu(), true);
         assert_eq!(Synced::GpuAhead.on_gpu(), true);
+        assert_eq!(Synced::ButCpuPreferred.on_gpu(), true);
+        assert_eq!(Synced::ButGpuPreferred.on_gpu(), true);
     }
 
     #[test]
@@ -106,6 +152,8 @@ mod test {
         assert_eq!(Synced::GpuOnly.needs_gpu_update(), false);
         assert_eq!(Synced::CpuAhead.needs_gpu_update(), true);
         assert_eq!(Synced::GpuAhead.needs_gpu_update(), false);
+        assert_eq!(Synced::ButCpuPreferred.needs_gpu_update(), false);
+        assert_eq!(Synced::ButGpuPreferred.needs_gpu_update(), false);
     }
 
     #[test]
@@ -114,5 +162,27 @@ mod test {
         assert_eq!(Synced::GpuOnly.needs_cpu_update(), true);
         assert_eq!(Synced::CpuAhead.needs_cpu_update(), false);
         assert_eq!(Synced::GpuAhead.needs_cpu_update(), true);
+        assert_eq!(Synced::ButCpuPreferred.needs_cpu_update(), false);
+        assert_eq!(Synced::ButGpuPreferred.needs_cpu_update(), false);
+    }
+
+    #[test]
+    fn test_synced_prefers_writing_to_cpu() {
+        assert_eq!(Synced::CpuOnly.prefers_writing_to_cpu(), true);
+        assert_eq!(Synced::GpuOnly.prefers_writing_to_cpu(), false);
+        assert_eq!(Synced::CpuAhead.prefers_writing_to_cpu(), true);
+        assert_eq!(Synced::GpuAhead.prefers_writing_to_cpu(), false);
+        assert_eq!(Synced::ButCpuPreferred.prefers_writing_to_cpu(), true);
+        assert_eq!(Synced::ButGpuPreferred.prefers_writing_to_cpu(), false);
+    }
+
+    #[test]
+    fn test_synced_prefers_writing_to_gpu() {
+        assert_eq!(Synced::CpuOnly.prefers_writing_to_gpu(), false);
+        assert_eq!(Synced::GpuOnly.prefers_writing_to_gpu(), true);
+        assert_eq!(Synced::CpuAhead.prefers_writing_to_gpu(), false);
+        assert_eq!(Synced::GpuAhead.prefers_writing_to_gpu(), true);
+        assert_eq!(Synced::ButCpuPreferred.prefers_writing_to_gpu(), false);
+        assert_eq!(Synced::ButGpuPreferred.prefers_writing_to_gpu(), true);
     }
 }

@@ -35,6 +35,14 @@ impl Pixels {
         self.size
     }
 
+    pub fn width(&self) -> i32 {
+        self.size.width()
+    }
+
+    pub fn height(&self) -> i32 {
+        self.size.height()
+    }
+
     pub(crate) fn transparent_pixels_array(size: Size2i) -> Vec<Vec<Color>> {
         let (width, height) = (size.width() as usize, size.height() as usize);
         let mut array = Vec::with_capacity(height);
