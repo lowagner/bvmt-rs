@@ -6,14 +6,14 @@ pub struct Vector2<T> {
     pub y: T,
 }
 
+pub type Vector2i = Vector2<i32>;
+pub type Vector2f = Vector2<f32>;
+
 impl<T> Vector2<T> {
     pub fn new(x: T, y: T) -> Self {
         Self { x, y }
     }
 }
-
-pub type Vector2i = Vector2<i32>;
-pub type Vector2f = Vector2<f32>;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
 pub struct Size2<T> {
@@ -25,11 +25,11 @@ pub type Size2i = Size2<i32>;
 pub type Size2f = Size2<f32>;
 
 impl<T: Copy> Size2<T> {
-    fn width(&self) -> T {
+    pub fn width(&self) -> T {
         self.width
     }
 
-    fn height(&self) -> T {
+    pub fn height(&self) -> T {
         self.height
     }
 }
