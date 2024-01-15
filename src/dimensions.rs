@@ -57,17 +57,6 @@ pub struct Box2<T> {
 pub type Box2i = Box2<i32>;
 pub type Box2f = Box2<f32>;
 
-impl<T: Copy + std::default::Default + std::ops::Sub<Output = T>> From<Size2<T>> for Box2<T> {
-    fn from(size: Size2<T>) -> Box2<T> {
-        Self {
-            x0: T::default(),
-            y0: T::default(),
-            x1: size.width,
-            y1: size.height,
-        }
-    }
-}
-
 impl<
         T: Copy
             + std::default::Default
@@ -77,6 +66,8 @@ impl<
     > Box2<T>
 {
     /// Returns a new rectangle between two corners.
+    /// The corners can be any of top-left, top-right, bottom-left, bottom-right,
+    /// as long as all four dimensions (left, right, top, bottom) are included.
     pub fn new(corner0: Vector2<T>, corner1: Vector2<T>) -> Self {
         Self {
             x0: min(corner0.x, corner1.x),
@@ -86,12 +77,28 @@ impl<
         }
     }
 
+    /// Returns a new rectangle with a specified top-left corner
+    /// and the given size.
     pub fn at(top_left_corner: Vector2<T>, size: Size2<T>) -> Self {
         Self {
             x0: top_left_corner.x,
             y0: top_left_corner.y,
             x1: top_left_corner.x + size.width,
             y1: top_left_corner.y + size.height,
+        }
+    }
+
+    /// Returns a new rectangle as the intersection of this box with another;
+    /// if the two boxes don't intersect, then this will return a zero rectangle.
+    pub fn intersect(&self, other: Box2<T>) -> Self {
+        let x0 = max(self.x0, other.x0);
+        let x1 = min(self.x1, other.x1);
+        let y0 = max(self.y0, other.y0);
+        let y1 = min(self.y1, other.y1);
+        if x0 < x1 && y0 < y1 {
+            Self { x0, y0, x1, y1 }
+        } else {
+            Self::default()
         }
     }
 
@@ -130,6 +137,17 @@ impl<
     /// Returns the height of the rectangle.
     pub fn height(&self) -> T {
         self.y1 - self.y0
+    }
+}
+
+impl<T: Copy + std::default::Default + std::ops::Sub<Output = T>> From<Size2<T>> for Box2<T> {
+    fn from(size: Size2<T>) -> Box2<T> {
+        Self {
+            x0: T::default(),
+            y0: T::default(),
+            x1: size.width,
+            y1: size.height,
+        }
     }
 }
 
@@ -329,5 +347,45 @@ mod test {
         assert_eq!(box2.size(), Size2::new(123.4, 56.7));
         assert_eq!(box2.width(), 123.4);
         assert_eq!(box2.height(), 56.7);
+    }
+
+    #[test]
+    fn test_box2f_intersect() {
+        // TODO: more tests with boxes above/below/etc.
+        assert_eq!(
+            Box2f::at(Vector2::new(-50.5, 1000.75), Size2::new(100.0, 50.0)).intersect(Box2f::at(
+                Vector2::new(-100.5, 1025.0),
+                Size2::new(100.75, 10.1),
+            )),
+            Box2f::new(Vector2::new(-50.5, 1025.0), Vector2::new(0.25, 1035.1)),
+        );
+    }
+
+    #[test]
+    fn test_box2f_intersect_with_no_overlap() {
+        // Box after in both dimensions:
+        assert_eq!(
+            Box2f::at(Vector2::new(10.0, 100.0), Size2::new(1.0, 2.0)).intersect(Box2f::at(
+                Vector2::new(11.0, 102.0),
+                Size2::new(100.0, 200.0),
+            )),
+            Box2f::default(),
+        );
+        // Box after in dimension x:
+        assert_eq!(
+            Box2f::at(Vector2::new(10.0, 100.0), Size2::new(1.0, 2.0)).intersect(Box2f::at(
+                Vector2::new(11.0, 100.5),
+                Size2::new(100.0, 200.0),
+            )),
+            Box2f::default(),
+        );
+        // Box after in dimension y:
+        assert_eq!(
+            Box2f::at(Vector2::new(10.0, 100.0), Size2::new(1.0, 2.0)).intersect(Box2f::at(
+                Vector2::new(9.0, 102.0),
+                Size2::new(100.0, 200.0),
+            )),
+            Box2f::default(),
+        );
     }
 }
