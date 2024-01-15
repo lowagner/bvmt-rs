@@ -193,7 +193,7 @@ mod test {
 
     #[test]
     fn test_box2i_with_top_left_and_bottom_right() {
-        let box2 = Box2i::new(Vector2i::new(10, 20), Vector2i::new(50, 25));
+        let box2 = Box2i::new(Vector2::new(10, 20), Vector2::new(50, 25));
         assert_eq!(box2.left(), 10);
         assert_eq!(box2.right(), 50);
         assert_eq!(box2.top(), 20);
@@ -205,8 +205,21 @@ mod test {
     }
 
     #[test]
+    fn test_box2f_with_top_left_and_bottom_right() {
+        let box2 = Box2f::new(Vector2::new(10.5, 20.0), Vector2::new(50.5, 25.0));
+        assert_eq!(box2.left(), 10.5);
+        assert_eq!(box2.right(), 50.5);
+        assert_eq!(box2.top(), 20.0);
+        assert_eq!(box2.bottom(), 25.0);
+
+        assert_eq!(box2.size(), Size2::new(40.0, 5.0));
+        assert_eq!(box2.width(), 40.0);
+        assert_eq!(box2.height(), 5.0);
+    }
+
+    #[test]
     fn test_box2i_with_bottom_right_and_top_left() {
-        let box2 = Box2i::new(Vector2i::new(60, 300), Vector2i::new(45, 290));
+        let box2 = Box2i::new(Vector2::new(60, 300), Vector2::new(45, 290));
         assert_eq!(box2.left(), 45);
         assert_eq!(box2.right(), 60);
         assert_eq!(box2.top(), 290);
@@ -218,8 +231,21 @@ mod test {
     }
 
     #[test]
+    fn test_box2f_with_bottom_right_and_top_left() {
+        let box2 = Box2f::new(Vector2::new(60.5, 300.0), Vector2::new(45.0, 290.0));
+        assert_eq!(box2.left(), 45.0);
+        assert_eq!(box2.right(), 60.5);
+        assert_eq!(box2.top(), 290.0);
+        assert_eq!(box2.bottom(), 300.0);
+
+        assert_eq!(box2.size(), Size2::new(15.5, 10.0));
+        assert_eq!(box2.width(), 15.5);
+        assert_eq!(box2.height(), 10.0);
+    }
+
+    #[test]
     fn test_box2i_with_top_right_and_bottom_left() {
-        let box2 = Box2i::new(Vector2i::new(-5, 1000), Vector2i::new(-55, 1007));
+        let box2 = Box2i::new(Vector2::new(-5, 1000), Vector2::new(-55, 1007));
         assert_eq!(box2.left(), -55);
         assert_eq!(box2.right(), -5);
         assert_eq!(box2.top(), 1000);
@@ -231,17 +257,42 @@ mod test {
     }
 
     #[test]
+    fn test_box2f_with_top_right_and_bottom_left() {
+        let box2 = Box2f::new(Vector2::new(-5.0, 1000.0), Vector2::new(-55.0, 1007.5));
+        assert_eq!(box2.left(), -55.0);
+        assert_eq!(box2.right(), -5.0);
+        assert_eq!(box2.top(), 1000.0);
+        assert_eq!(box2.bottom(), 1007.5);
+
+        assert_eq!(box2.size(), Size2::new(50.0, 7.5));
+        assert_eq!(box2.width(), 50.0);
+        assert_eq!(box2.height(), 7.5);
+    }
+
+    #[test]
     fn test_box2i_with_bottom_left_and_top_right() {
-        // TODO:
-        let box2 = Box2i::new(Vector2i::new(1, -50), Vector2i::new(101, -100));
+        let box2 = Box2i::new(Vector2::new(1, -200), Vector2::new(101, -250));
         assert_eq!(box2.left(), 1);
         assert_eq!(box2.right(), 101);
-        assert_eq!(box2.top(), -100);
-        assert_eq!(box2.bottom(), -50);
+        assert_eq!(box2.top(), -250);
+        assert_eq!(box2.bottom(), -200);
 
         assert_eq!(box2.size(), Size2::new(100, 50));
         assert_eq!(box2.width(), 100);
         assert_eq!(box2.height(), 50);
+    }
+
+    #[test]
+    fn test_box2f_with_bottom_left_and_top_right() {
+        let box2 = Box2f::new(Vector2::new(1.0, -200.5), Vector2::new(101.0, -250.0));
+        assert_eq!(box2.left(), 1.0);
+        assert_eq!(box2.right(), 101.0);
+        assert_eq!(box2.top(), -250.0);
+        assert_eq!(box2.bottom(), -200.5);
+
+        assert_eq!(box2.size(), Size2::new(100.0, 49.5));
+        assert_eq!(box2.width(), 100.0);
+        assert_eq!(box2.height(), 49.5);
     }
     // TODO: from(Size), at(Corner, Size)
 }
