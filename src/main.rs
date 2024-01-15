@@ -5,6 +5,11 @@ use winit::{
     window::WindowBuilder,
 };
 
+mod color;
+mod dimensions;
+mod gpu;
+mod pixels;
+
 fn main() {
     env_logger::init(); // Enable logging from WGPU
     let event_loop = EventLoop::new().expect("should build a loop");
