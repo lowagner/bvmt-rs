@@ -44,22 +44,6 @@ impl<T: Copy + std::default::Default + PartialOrd> Size2<T> {
     }
 }
 
-impl<
-        T: Copy
-            + std::default::Default
-            + std::ops::Sub<Output = T>
-            + std::ops::Add<Output = T>
-            + PartialOrd,
-    > From<Box2<T>> for Size2<T>
-{
-    fn from(rectangle: Box2<T>) -> Size2<T> {
-        Self {
-            width: rectangle.width(),
-            height: rectangle.height(),
-        }
-    }
-}
-
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
 pub struct Box2<T> {
     // Not public because we want to maintain these invariants:
@@ -294,5 +278,56 @@ mod test {
         assert_eq!(box2.width(), 100.0);
         assert_eq!(box2.height(), 49.5);
     }
-    // TODO: from(Size), at(Corner, Size)
+
+    #[test]
+    fn test_box2i_at() {
+        let box2 = Box2i::at(Vector2::new(-3, 7), Size2::new(123, 45));
+        assert_eq!(box2.left(), -3);
+        assert_eq!(box2.right(), 120);
+        assert_eq!(box2.top(), 7);
+        assert_eq!(box2.bottom(), 52);
+
+        assert_eq!(box2.size(), Size2::new(123, 45));
+        assert_eq!(box2.width(), 123);
+        assert_eq!(box2.height(), 45);
+    }
+
+    #[test]
+    fn test_box2f_at() {
+        let box2 = Box2f::at(Vector2::new(3.4, -6.5), Size2::new(123.4, 56.7));
+        assert_eq!(box2.left(), 3.4);
+        assert_eq!(box2.right(), 126.8);
+        assert_eq!(box2.top(), -6.5);
+        assert_eq!(box2.bottom(), 50.2);
+
+        assert_eq!(box2.size(), Size2::new(123.4, 56.7));
+        assert_eq!(box2.width(), 123.4);
+        assert_eq!(box2.height(), 56.7);
+    }
+
+    #[test]
+    fn test_box2i_from_size() {
+        let box2 = Box2i::from(Size2::new(1234, 567));
+        assert_eq!(box2.left(), 0);
+        assert_eq!(box2.right(), 1234);
+        assert_eq!(box2.top(), 0);
+        assert_eq!(box2.bottom(), 567);
+
+        assert_eq!(box2.size(), Size2::new(1234, 567));
+        assert_eq!(box2.width(), 1234);
+        assert_eq!(box2.height(), 567);
+    }
+
+    #[test]
+    fn test_box2f_from_size() {
+        let box2 = Box2f::from(Size2::new(123.4, 56.7));
+        assert_eq!(box2.left(), 0.0);
+        assert_eq!(box2.right(), 123.4);
+        assert_eq!(box2.top(), 0.0);
+        assert_eq!(box2.bottom(), 56.7);
+
+        assert_eq!(box2.size(), Size2::new(123.4, 56.7));
+        assert_eq!(box2.width(), 123.4);
+        assert_eq!(box2.height(), 56.7);
+    }
 }
