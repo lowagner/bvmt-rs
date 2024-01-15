@@ -6,6 +6,12 @@ pub struct Vector2<T> {
     pub y: T,
 }
 
+impl<T> Vector2<T> {
+    pub fn new(x: T, y: T) -> Self {
+        Self { x, y }
+    }
+}
+
 pub type Vector2i = Vector2<i32>;
 pub type Vector2f = Vector2<f32>;
 
@@ -125,6 +131,13 @@ impl<
         self.y1
     }
 
+    pub fn size(&self) -> Size2<T> {
+        Size2 {
+            width: self.width(),
+            height: self.height(),
+        }
+    }
+
     /// Returns the width of the rectangle.
     pub fn width(&self) -> T {
         self.x1 - self.x0
@@ -177,4 +190,58 @@ mod test {
         assert_eq!(size2.width(), 0.0);
         assert_eq!(size2.height(), 0.0);
     }
+
+    #[test]
+    fn test_box2i_with_top_left_and_bottom_right() {
+        let box2 = Box2i::new(Vector2i::new(10, 20), Vector2i::new(50, 25));
+        assert_eq!(box2.left(), 10);
+        assert_eq!(box2.right(), 50);
+        assert_eq!(box2.top(), 20);
+        assert_eq!(box2.bottom(), 25);
+
+        assert_eq!(box2.size(), Size2::new(40, 5));
+        assert_eq!(box2.width(), 40);
+        assert_eq!(box2.height(), 5);
+    }
+
+    #[test]
+    fn test_box2i_with_bottom_right_and_top_left() {
+        let box2 = Box2i::new(Vector2i::new(60, 300), Vector2i::new(45, 290));
+        assert_eq!(box2.left(), 45);
+        assert_eq!(box2.right(), 60);
+        assert_eq!(box2.top(), 290);
+        assert_eq!(box2.bottom(), 300);
+
+        assert_eq!(box2.size(), Size2::new(15, 10));
+        assert_eq!(box2.width(), 15);
+        assert_eq!(box2.height(), 10);
+    }
+
+    #[test]
+    fn test_box2i_with_top_right_and_bottom_left() {
+        let box2 = Box2i::new(Vector2i::new(-5, 1000), Vector2i::new(-55, 1007));
+        assert_eq!(box2.left(), -55);
+        assert_eq!(box2.right(), -5);
+        assert_eq!(box2.top(), 1000);
+        assert_eq!(box2.bottom(), 1007);
+
+        assert_eq!(box2.size(), Size2::new(50, 7));
+        assert_eq!(box2.width(), 50);
+        assert_eq!(box2.height(), 7);
+    }
+
+    #[test]
+    fn test_box2i_with_bottom_left_and_top_right() {
+        // TODO:
+        let box2 = Box2i::new(Vector2i::new(1, -50), Vector2i::new(101, -100));
+        assert_eq!(box2.left(), 1);
+        assert_eq!(box2.right(), 101);
+        assert_eq!(box2.top(), -100);
+        assert_eq!(box2.bottom(), -50);
+
+        assert_eq!(box2.size(), Size2::new(100, 50));
+        assert_eq!(box2.width(), 100);
+        assert_eq!(box2.height(), 50);
+    }
+    // TODO: from(Size), at(Corner, Size)
 }
