@@ -9,6 +9,7 @@ mod color;
 mod dimensions;
 mod gpu;
 mod pixels;
+mod synced;
 
 fn main() {
     env_logger::init(); // Enable logging from WGPU
