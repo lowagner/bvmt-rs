@@ -66,13 +66,31 @@ impl Gpu {
             // Write to the GPU:
             // AFAICT there's not a better way to write single pixels to the texture.
             // That's probably ok, this isn't meant to be an efficient API.
-            /* TODO
+            let color = [color];
             self.queue.write_texture(
                 wgpu::ImageCopyTexture {
                     texture,
-                }
+                    mip_level: 0,
+                    // TODO: check if we need to flip coordinates to `height - coordinates.y - 1`
+                    origin: wgpu::Origin3d {
+                        x: coordinates.x as u32,
+                        y: coordinates.y as u32,
+                        z: 0,
+                    },
+                    aspect: wgpu::TextureAspect::All,
+                },
+                bytemuck::cast_slice(&color),
+                wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: None,  // no rows
+                    rows_per_image: None, // no rows
+                },
+                wgpu::Extent3d {
+                    width: 1,
+                    height: 1,
+                    depth_or_array_layers: 1,
+                },
             );
-            */
             pixels.synced.gpu_was_updated();
         }
     }
@@ -94,4 +112,6 @@ impl Gpu {
         // https://github.com/gfx-rs/wgpu/tree/trunk/examples/src/hello_compute
         todo!();
     }
+
+    // TODO: shaders, consider https://github.com/EmbarkStudios/rust-gpu ???
 }
