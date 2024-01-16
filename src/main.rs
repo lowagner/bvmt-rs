@@ -1,15 +1,15 @@
+pub mod color;
+pub mod dimensions;
+pub mod gpu;
+pub mod pixels;
+mod synced;
+
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
     keyboard::{Key, NamedKey},
     window::WindowBuilder,
 };
-
-mod color;
-mod dimensions;
-mod gpu;
-mod pixels;
-mod synced;
 
 fn main() {
     env_logger::init(); // Enable logging from WGPU
