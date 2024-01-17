@@ -8,5 +8,5 @@ pub mod window;
 use window::*;
 
 fn main() {
-    run();
+    pollster::block_on(run());
 }

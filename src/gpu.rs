@@ -23,6 +23,7 @@ impl Gpu {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
+            // TODO: GPU should probably hold onto the preferred window.surface format.
             format: wgpu::TextureFormat::Rgba8Unorm,
             usage: wgpu::TextureUsages::all(),
             label: None,
