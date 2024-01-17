@@ -114,10 +114,16 @@ struct Surface {
 }
 
 impl Surface {
-    fn resize(&mut self, gpu: &mut Gpu, new_size: winit::dpi::PhysicalSize<u32>) {
+    fn resize(&mut self, gpu: &mut Gpu, new_size: winit::dpi::PhysicalSize<u32>) -> bool {
+        if new_size.width == 0 || new_size.height == 0 {
+            // Don't allow an invalid size.
+            return false;
+        }
+        let resized = new_size.width != self.config.width || new_size.height != self.config.height;
         self.config.width = new_size.width;
         self.config.height = new_size.height;
         self.surface.configure(&gpu.device, &self.config);
+        resized
     }
 }
 
@@ -146,6 +152,12 @@ pub async fn run() {
                     if event.logical_key == Key::Named(NamedKey::Escape) {
                         target.exit();
                     }
+                }
+                Event::WindowEvent {
+                    event: WindowEvent::Resized(physical_size),
+                    window_id,
+                } if window_id == window.id() => {
+                    window.surface.resize(&mut window.gpu, physical_size);
                 }
                 _ => (),
             }
