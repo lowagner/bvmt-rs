@@ -11,6 +11,17 @@ pub struct Color {
     pub a: u8,
 }
 
+impl Color {
+    pub fn red(r: u8) -> Self {
+        Color {
+            r,
+            g: 0,
+            b: 0,
+            a: 255,
+        }
+    }
+}
+
 impl From<Color> for wgpu::Color {
     fn from(color: Color) -> wgpu::Color {
         Self {
@@ -40,6 +51,19 @@ mod test {
                 g: 0.1568627450980392,
                 b: 0.0392156862745098,
                 a: 0.996078431372549,
+            },
+        );
+    }
+
+    #[test]
+    fn test_color_red() {
+        assert_eq!(
+            Color::red(103),
+            Color {
+                r: 103,
+                g: 0,
+                b: 0,
+                a: 255
             },
         );
     }
