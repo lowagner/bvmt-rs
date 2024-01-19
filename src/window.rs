@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::app::*;
 use crate::color::*;
 use crate::dimensions::Size2i;
 use crate::gpu::*;
@@ -8,7 +9,6 @@ use crate::pixels::*;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
-    keyboard::{Key, NamedKey},
 };
 
 pub struct Window {
@@ -127,10 +127,7 @@ impl Surface {
     }
 }
 
-// TODO: add an `App`(?) class and pass it in here as mutable.
-//       App should have methods like: `handle(event)`, `draw(window)`;
-//       maybe put `TimeElapsedEvent` into Event enum.
-pub async fn run() {
+pub async fn run(mut app: Box<dyn App>) {
     env_logger::init(); // Enable logging from WGPU
     let (mut window, event_loop) = Window::new_with_loop().await;
 
@@ -138,29 +135,42 @@ pub async fn run() {
         .run(move |event: Event<()>, target| {
             target.set_control_flow(ControlFlow::Wait);
 
-            match event {
-                Event::WindowEvent {
-                    event: WindowEvent::CloseRequested,
-                    window_id,
-                } if window_id == window.id() => {
-                    target.exit();
-                }
-                Event::WindowEvent {
-                    event: WindowEvent::KeyboardInput { event, .. },
-                    window_id,
-                } if window_id == window.id() => {
-                    if event.logical_key == Key::Named(NamedKey::Escape) {
+            if let Some(app_event) = handle_or_convert(event, &mut window) {
+                match app.handle(app_event, &mut window) {
+                    AppPlease::Continue => {}
+                    AppPlease::Terminate => {
                         target.exit();
                     }
+                    AppPlease::Replace(new_app) => {
+                        app = new_app;
+                    }
                 }
-                Event::WindowEvent {
-                    event: WindowEvent::Resized(physical_size),
-                    window_id,
-                } if window_id == window.id() => {
-                    window.surface.resize(&mut window.gpu, physical_size);
-                }
-                _ => (),
             }
         })
         .expect("should run loop ok");
+}
+
+fn handle_or_convert(event: Event<()>, window: &mut Window) -> Option<AppEvent> {
+    match event {
+        Event::WindowEvent {
+            event: WindowEvent::CloseRequested,
+            window_id,
+        } if window_id == window.id() => Some(AppEvent::WindowCloseRequested),
+        Event::WindowEvent {
+            event: WindowEvent::KeyboardInput { event, .. },
+            window_id,
+        } if window_id == window.id() => Some(AppEvent::KeyInput(KeyInput {
+            key: event.logical_key,
+            state: event.state,
+            repeating: event.repeat,
+        })),
+        Event::WindowEvent {
+            event: WindowEvent::Resized(physical_size),
+            window_id,
+        } if window_id == window.id() => {
+            window.surface.resize(&mut window.gpu, physical_size);
+            None
+        }
+        _ => None,
+    }
 }
