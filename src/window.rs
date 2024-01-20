@@ -7,6 +7,7 @@ use crate::gpu::*;
 use crate::pixels::*;
 
 use ctrlc;
+use std::iter;
 use std::sync;
 use std::time;
 use winit::{
@@ -121,8 +122,40 @@ impl Window {
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        let output = self.surface.wgpu_surface.get_current_texture()?;
-        // TODO
+        let window_texture = self.surface.wgpu_surface.get_current_texture()?;
+        let window_view = window_texture
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        let mut gpu_commands =
+            self.gpu
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("window"),
+                });
+
+        {
+            let mut render_pass = gpu_commands.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("window.pixels"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &window_view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(self.background.into()),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                occlusion_query_set: None,
+                timestamp_writes: None,
+            });
+
+            // TODO: draw window.pixels
+        }
+
+        self.gpu.queue.submit(iter::once(gpu_commands.finish()));
+        window_texture.present();
+
         Ok(())
     }
 
