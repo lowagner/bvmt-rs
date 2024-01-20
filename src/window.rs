@@ -15,8 +15,6 @@ use winit::{
 };
 
 pub struct Window {
-    window: winit::window::Window,
-    surface: Surface,
     /// The GPU device that this window is using.
     pub gpu: Gpu,
     /// Pixels that will be sent to the GPU every frame.  Note that
@@ -27,6 +25,11 @@ pub struct Window {
     pub pixels: Pixels,
     /// Background color, in case of letterboxing with pixels.
     pub background: Color,
+    /// Desired frames per second.
+    pub fps: f64,
+    last_instant: time::Instant,
+    window: winit::window::Window,
+    surface: Surface,
 }
 
 impl Window {
@@ -92,11 +95,13 @@ impl Window {
 
         (
             Self {
-                window,
                 gpu,
                 pixels,
-                surface: Surface { surface, config },
                 background: Color::red(234),
+                fps: 1.0,
+                last_instant: time::Instant::now(),
+                window,
+                surface: Surface { surface, config },
             },
             event_loop,
         )
@@ -108,6 +113,14 @@ impl Window {
 
     pub fn default_resolution() -> Size2i {
         Size2i::new(960, 512)
+    }
+
+    // TODO: call this on Ctrl+Z -> Resume so time doesn't go crazy
+    fn update_instant(&mut self) -> time::Duration {
+        let new_instant = time::Instant::now();
+        let duration = new_instant.duration_since(self.last_instant);
+        self.last_instant = new_instant;
+        duration
     }
 }
 
@@ -132,6 +145,7 @@ impl Surface {
 
 pub async fn run(mut app: Box<dyn App>) {
     env_logger::init(); // Enable logging from WGPU
+                        // TODO: move to the Window struct
     let (ctrlc_sender, ctrlc_receiver) = sync::mpsc::channel();
     ctrlc::set_handler(move || ctrlc_sender.send(()).expect("should send signal"))
         .expect("should set Ctrl-C handler");
@@ -146,9 +160,9 @@ pub async fn run(mut app: Box<dyn App>) {
 
     event_loop
         .run(move |event: Event<()>, target| {
-            // TODO: support other timeouts
-            target.set_control_flow(ControlFlow::wait_duration(time::Duration::from_secs(1)));
-            // TODO: probably can only check ctrl after certain events (like timeouts/TimeElapsed events).
+            // TODO: try to converge on FPS based on work-time + wait-time.
+            target.set_control_flow(ControlFlow::wait_duration(fps_to_duration(window.fps)));
+            // TODO: probably can only check ctrl after certain events (e.g., AboutToWait).
             if ctrlc_receiver.try_recv().is_ok() {
                 let _ignored = app.handle(AppEvent::End, &mut window);
                 target.exit();
@@ -206,9 +220,24 @@ fn handle_or_convert(event: Event<()>, window: &mut Window) -> Option<AppEvent> 
             None
         }
         Event::LoopExiting => Some(AppEvent::End),
+        Event::NewEvents(start_cause) => match start_cause {
+            StartCause::ResumeTimeReached { .. } => {
+                let duration = window.update_instant();
+                Some(AppEvent::TimeElapsed(duration))
+            }
+            other => {
+                eprint!("unhandled new event: {:?}\n", other); // TODO: remove this eventually.
+                None
+            }
+        },
+        Event::AboutToWait => None,
         _ => {
             eprint!("unhandled event: {:?}\n", event); // TODO: remove this eventually.
             None
         }
     }
+}
+
+fn fps_to_duration(fps: f64) -> time::Duration {
+    time::Duration::from_nanos((1_000_000_000.0 / fps).floor() as u64)
 }

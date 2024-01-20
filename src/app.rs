@@ -3,6 +3,8 @@
 use crate::color::*;
 use crate::window::*;
 
+use std::time;
+
 pub use winit::event::ElementState as InputState;
 pub use winit::keyboard::{Key, NamedKey, NativeKey};
 
@@ -21,7 +23,6 @@ pub enum AppPlease {
     Replace(Box<dyn App>),
 }
 
-// TODO: maybe put `TimeElapsedEvent` into Event enum.
 pub enum AppEvent {
     /// The App was just started.
     Start,
@@ -34,6 +35,9 @@ pub enum AppEvent {
     WindowCloseRequested,
     /// Some keyboard input.
     KeyInput(KeyInput),
+    /// Some amount of time has elapsed, measured since the last time
+    /// `TimeElapsed` has been passed.
+    TimeElapsed(time::Duration),
 }
 
 pub struct KeyInput {
@@ -69,6 +73,10 @@ impl App for DefaultApp {
                 } else {
                     AppPlease::Continue
                 }
+            }
+            AppEvent::TimeElapsed(duration) => {
+                eprint!("time elapsed: {:?}\n", duration);
+                AppPlease::Continue
             }
         }
     }
