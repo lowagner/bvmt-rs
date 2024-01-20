@@ -31,7 +31,7 @@ pub struct Window {
     last_instant: time::Instant,
     // Keep `window` above `surface` to ensure the window is always
     // in scope for the surface.
-    window: winit::window::Window,
+    winit_window: winit::window::Window,
     surface: Surface,
     ctrlc_receiver: sync::mpsc::Receiver<()>,
 }
@@ -43,7 +43,7 @@ impl Window {
             .expect("should set Ctrl-C handler");
 
         let event_loop = EventLoop::new().expect("should build a loop");
-        let window = winit::window::WindowBuilder::new()
+        let winit_window = winit::window::WindowBuilder::new()
             .build(&event_loop)
             .unwrap();
 
@@ -54,11 +54,11 @@ impl Window {
 
         // The winit window needs to be in scope longer than this surface,
         // but that should be the case since Window holds both.
-        let surface = unsafe { wgpu.create_surface(&window) }.unwrap();
+        let wgpu_surface = unsafe { wgpu.create_surface(&winit_window) }.unwrap();
 
         let gpu_adapter = wgpu
             .request_adapter(&wgpu::RequestAdapterOptions {
-                compatible_surface: Some(&surface),
+                compatible_surface: Some(&wgpu_surface),
                 // Don't force software rendering:
                 force_fallback_adapter: false,
                 power_preference: wgpu::PowerPreference::default(),
@@ -79,7 +79,7 @@ impl Window {
             .unwrap();
         let mut gpu = Gpu { device, queue };
 
-        let surface_capabilities = surface.get_capabilities(&gpu_adapter);
+        let surface_capabilities = wgpu_surface.get_capabilities(&gpu_adapter);
         let surface_format = surface_capabilities
             .formats
             .iter()
@@ -88,7 +88,7 @@ impl Window {
             .unwrap_or(wgpu::TextureFormat::Bgra8Unorm); // guaranteed
                                                          // TODO: update gpu.preferred_format here before creating gpu.pixels
 
-        let size = window.inner_size();
+        let size = winit_window.inner_size();
         let config = wgpu::SurfaceConfiguration {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT,
             format: surface_format,
@@ -98,7 +98,11 @@ impl Window {
             alpha_mode: surface_capabilities.alpha_modes[0],
             view_formats: vec![],
         };
-        surface.configure(&gpu.device, &config);
+        let mut surface = Surface {
+            wgpu_surface,
+            config,
+        };
+        surface.reconfigure(&mut gpu);
         let pixels = gpu.pixels(Window::default_resolution());
 
         (
@@ -108,16 +112,22 @@ impl Window {
                 background: Color::red(234),
                 fps: 1.0,
                 last_instant: time::Instant::now(),
-                window,
-                surface: Surface { surface, config },
+                winit_window,
+                surface,
                 ctrlc_receiver,
             },
             event_loop,
         )
     }
 
+    fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
+        let output = self.surface.wgpu_surface.get_current_texture()?;
+        // TODO
+        Ok(())
+    }
+
     pub(crate) fn id(&self) -> winit::window::WindowId {
-        self.window.id()
+        self.winit_window.id()
     }
 
     pub fn default_resolution() -> Size2i {
@@ -134,7 +144,7 @@ impl Window {
 }
 
 struct Surface {
-    surface: wgpu::Surface,
+    wgpu_surface: wgpu::Surface,
     config: wgpu::SurfaceConfiguration,
 }
 
@@ -147,8 +157,12 @@ impl Surface {
         let resized = new_size.width != self.config.width || new_size.height != self.config.height;
         self.config.width = new_size.width;
         self.config.height = new_size.height;
-        self.surface.configure(&gpu.device, &self.config);
+        self.reconfigure(gpu);
         resized
+    }
+
+    fn reconfigure(&mut self, gpu: &mut Gpu) {
+        self.wgpu_surface.configure(&gpu.device, &self.config);
     }
 }
 
@@ -182,6 +196,8 @@ fn handle_app_event(app: &mut Box<dyn App>, mut app_event: AppEvent, window: &mu
     if app_event == AppEvent::End {
         // Don't let the App get away with changing how it behaves here.
         let _ignored = app.handle(AppEvent::End, window);
+        // This should only be called if `target.exit()` has already been called,
+        // but for safety we'll ensure it happens here.
         return true;
     }
     loop {
@@ -212,6 +228,25 @@ fn handle_or_convert(
     target: &EventLoopWindowTarget<()>,
 ) -> Option<AppEvent> {
     match event {
+        Event::WindowEvent {
+            event: WindowEvent::RedrawRequested,
+            window_id,
+        } if window_id == window.id() => {
+            match window.render() {
+                Ok(_) => {}
+                Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                    window.surface.reconfigure(&mut window.gpu)
+                }
+                Err(wgpu::SurfaceError::OutOfMemory) => {
+                    eprint!("wgpu surface out of memory!\n");
+                    target.exit();
+                }
+                Err(wgpu::SurfaceError::Timeout) => {
+                    eprint!("surface timeout\n");
+                }
+            }
+            None
+        }
         Event::WindowEvent {
             event: WindowEvent::CloseRequested,
             window_id,
