@@ -26,9 +26,11 @@ pub struct Window {
     pub pixels: Pixels,
     /// Background color, in case of letterboxing with pixels.
     pub background: Color,
-    /// Desired frames per second.
-    pub frame_duration: time::Duration,
-    last_instant: time::Instant,
+    /// Desired amount of time between frames.
+    desired_frame_duration: time::Duration,
+    last_frame_instant: time::Instant,
+    /// Amount of time we used to wait in the last frame.
+    last_frame_wait: time::Duration,
     // Keep `window` above `surface` to ensure the window is always
     // in scope for the surface.
     winit_window: winit::window::Window,
@@ -105,13 +107,15 @@ impl Window {
         surface.reconfigure(&mut gpu);
         let pixels = gpu.pixels(Window::default_resolution());
 
+        let initial_frame_duration = time::Duration::from_secs(1);
         (
             Self {
                 gpu,
                 pixels,
                 background: Color::red(234),
-                frame_duration: time::Duration::from_secs(1),
-                last_instant: time::Instant::now(),
+                desired_frame_duration: initial_frame_duration,
+                last_frame_wait: initial_frame_duration,
+                last_frame_instant: time::Instant::now(),
                 winit_window,
                 surface,
                 ctrlc_receiver,
@@ -166,21 +170,48 @@ impl Window {
         Size2i::new(960, 512)
     }
 
-    // TODO: call this on Ctrl+Z -> Resume so time doesn't go crazy
-    fn update_instant(&mut self) -> time::Duration {
-        let new_instant = time::Instant::now();
-        let duration = new_instant.duration_since(self.last_instant);
-        self.last_instant = new_instant;
-        duration
-    }
-
     pub fn set_fps(&mut self, fps: f64) {
-        self.frame_duration = time::Duration::from_nanos((1_000_000_000.0 / fps).floor() as u64);
+        self.set_frame_duration(time::Duration::from_nanos(
+            (1_000_000_000.0 / fps).floor() as u64
+        ));
     }
 
-    fn get_frame_wait(&mut self) -> time::Duration {
-        // TODO: try to converge on FPS based on work-time + wait-time.
-        self.frame_duration
+    pub fn set_frame_duration(&mut self, new_frame_duration: time::Duration) {
+        self.desired_frame_duration = new_frame_duration;
+        // TODO: update self.last_frame_wait to make this calculation smoother.
+    }
+
+    // TODO: call this on Ctrl+Z -> Resume so time doesn't go crazy
+    fn reset_frame_wait(&mut self) -> time::Duration {
+        let new_instant = time::Instant::now();
+        self.last_frame_instant = new_instant;
+        self.last_frame_wait = self.desired_frame_duration;
+        self.desired_frame_duration
+    }
+
+    /// Returns the time to wait for this frame so that the desired_frame_duration
+    /// is reached.
+    fn update_frame_wait(&mut self) -> time::Duration {
+        let new_instant = time::Instant::now();
+        let actual_frame_duration = new_instant.duration_since(self.last_frame_instant);
+        self.last_frame_instant = new_instant;
+        // last frame:
+        //      work_duration + last_frame_wait = actual_frame_duration
+        // this frame, assume work_duration is the same:
+        //      work_duration + this_frame_wait = desired_frame_duration
+        // solve for this_frame_wait and update:
+        // NOTE: we also have to be careful for overflow when subtracting durations,
+        // so convert to nanos in i64 and be careful putting them back into a duration.
+        let delta_nanos =
+            self.desired_frame_duration.as_nanos() as i64 - actual_frame_duration.as_nanos() as i64;
+        let this_frame_wait_nanos = self.last_frame_wait.as_nanos() as i64 + delta_nanos;
+        if this_frame_wait_nanos < 0 {
+            eprint!("probably dropping frames\n");
+            self.last_frame_wait = time::Duration::from_nanos(0);
+        } else {
+            self.last_frame_wait = time::Duration::from_nanos(this_frame_wait_nanos as u64);
+        }
+        self.last_frame_wait
     }
 }
 
@@ -219,7 +250,6 @@ pub async fn run(mut app: Box<dyn App>) {
 
     event_loop
         .run(move |event: Event<()>, target| {
-            target.set_control_flow(ControlFlow::wait_duration(window.get_frame_wait()));
             if let Some(app_event) = handle_or_convert(event, &mut window, &target) {
                 if handle_app_event(&mut app, app_event, &mut window) {
                     target.exit();
@@ -311,11 +341,12 @@ fn handle_or_convert(
         Event::LoopExiting => Some(AppEvent::End),
         Event::NewEvents(start_cause) => match start_cause {
             StartCause::Init { .. } => {
-                let _ignored = window.update_instant();
+                target.set_control_flow(ControlFlow::wait_duration(window.reset_frame_wait()));
                 None
             }
             StartCause::ResumeTimeReached { .. } => {
-                let duration = window.update_instant();
+                let duration = window.update_frame_wait();
+                target.set_control_flow(ControlFlow::wait_duration(duration));
                 Some(AppEvent::TimeElapsed(duration))
             }
             other => {
