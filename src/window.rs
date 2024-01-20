@@ -11,7 +11,7 @@ use std::sync;
 use std::time;
 use winit::{
     event::*,
-    event_loop::{ControlFlow, EventLoop},
+    event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget},
 };
 
 pub struct Window {
@@ -158,7 +158,7 @@ pub async fn run(mut app: Box<dyn App>) {
     let (mut window, event_loop) = Window::new_with_loop().await;
 
     if handle_app_event(&mut app, AppEvent::Start, &mut window) {
-        eprint!("App shut down immediately...\n");
+        eprint!("App shut down immediately...?\n");
         return;
     }
 
@@ -166,7 +166,7 @@ pub async fn run(mut app: Box<dyn App>) {
         .run(move |event: Event<()>, target| {
             // TODO: try to converge on FPS based on work-time + wait-time.
             target.set_control_flow(ControlFlow::wait_duration(fps_to_duration(window.fps)));
-            if let Some(app_event) = handle_or_convert(event, &mut window) {
+            if let Some(app_event) = handle_or_convert(event, &mut window, &target) {
                 if handle_app_event(&mut app, app_event, &mut window) {
                     target.exit();
                 }
@@ -190,10 +190,13 @@ fn handle_app_event(app: &mut Box<dyn App>, mut app_event: AppEvent, window: &mu
                 return false;
             }
             AppPlease::Terminate => {
-                let _ignored = app.handle(AppEvent::End, window);
+                // Don't handle AppEvent::End here, that will occur when
+                // `Event::LoopExiting` fires.
                 return true;
             }
             AppPlease::Replace(new_app) => {
+                // We do need to handle AppEvent::End here because this is the
+                // last time we have a handle on the app before we replace it.
                 let _ignored = app.handle(AppEvent::End, window);
                 *app = new_app;
                 app_event = AppEvent::Start;
@@ -203,7 +206,11 @@ fn handle_app_event(app: &mut Box<dyn App>, mut app_event: AppEvent, window: &mu
 }
 
 /// Converts a winit event into an app event, or handles it for you.
-fn handle_or_convert(event: Event<()>, window: &mut Window) -> Option<AppEvent> {
+fn handle_or_convert(
+    event: Event<()>,
+    window: &mut Window,
+    target: &EventLoopWindowTarget<()>,
+) -> Option<AppEvent> {
     match event {
         Event::WindowEvent {
             event: WindowEvent::CloseRequested,
@@ -224,8 +231,14 @@ fn handle_or_convert(event: Event<()>, window: &mut Window) -> Option<AppEvent> 
             window.surface.resize(&mut window.gpu, physical_size);
             None
         }
+        // NOTE! Only this function should be allowed to return `AppEvent::End`;
+        // Use `target.exit()` in other cases where you want the loop to end.
         Event::LoopExiting => Some(AppEvent::End),
         Event::NewEvents(start_cause) => match start_cause {
+            StartCause::Init { .. } => {
+                let _ignored = window.update_instant();
+                None
+            }
             StartCause::ResumeTimeReached { .. } => {
                 let duration = window.update_instant();
                 Some(AppEvent::TimeElapsed(duration))
@@ -239,10 +252,10 @@ fn handle_or_convert(event: Event<()>, window: &mut Window) -> Option<AppEvent> 
             // We'll handle random stuff here since this event is fired before
             // waiting for the next frame.
             if window.ctrlc_receiver.try_recv().is_ok() {
-                Some(AppEvent::End)
-            } else {
-                None
+                // Rely on the `Event::LoopExiting` to generate the `AppEvent::End`:
+                target.exit();
             }
+            None
         }
         _ => {
             eprint!("unhandled event: {:?}\n", event); // TODO: remove this eventually.

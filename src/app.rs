@@ -53,7 +53,9 @@ pub struct KeyInput {
 }
 
 #[derive(Debug, Default)]
-pub struct DefaultApp {}
+pub struct DefaultApp {
+    elapsed_time: time::Duration,
+}
 
 impl App for DefaultApp {
     fn handle(&mut self, event: AppEvent, window: &mut Window) -> AppPlease {
@@ -64,7 +66,6 @@ impl App for DefaultApp {
                 AppPlease::Continue
             }
             AppEvent::End => {
-                // TODO: figure out why this is called twice
                 eprint!("default app ending\n");
                 // This is ignored.
                 AppPlease::Continue
@@ -79,7 +80,12 @@ impl App for DefaultApp {
             }
             AppEvent::TimeElapsed(duration) => {
                 eprint!("time elapsed: {:?}\n", duration);
-                AppPlease::Continue
+                self.elapsed_time += duration;
+                if self.elapsed_time > time::Duration::from_secs(8) {
+                    AppPlease::Terminate
+                } else {
+                    AppPlease::Continue
+                }
             }
         }
     }
