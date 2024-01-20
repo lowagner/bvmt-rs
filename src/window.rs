@@ -136,6 +136,7 @@ pub async fn run(mut app: Box<dyn App>) {
         return;
     }
 
+    // TODO: handle Ctrl+C by passing AppEvent::End to App first.
     event_loop
         .run(move |event: Event<()>, target| {
             target.set_control_flow(ControlFlow::Wait);
@@ -159,9 +160,11 @@ fn handle_app_event(app: &mut Box<dyn App>, mut app_event: AppEvent, window: &mu
                 return false;
             }
             AppPlease::Terminate => {
+                let _ignored = app.handle(AppEvent::End, window);
                 return true;
             }
             AppPlease::Replace(new_app) => {
+                let _ignored = app.handle(AppEvent::End, window);
                 *app = new_app;
                 app_event = AppEvent::Start;
             }

@@ -25,6 +25,10 @@ pub enum AppPlease {
 pub enum AppEvent {
     /// The App was just started.
     Start,
+    /// The App was just quit.  Any `AppPlease::Continue` or `Replace`
+    /// requests after handling this will be ignored.  You can use this
+    /// to save/etc.
+    End,
     /// The window should close -- when handling, prefer returning
     /// AppPlease::Terminate unless you have some "Save first" logic.
     WindowCloseRequested,
@@ -49,7 +53,13 @@ impl App for DefaultApp {
     fn handle(&mut self, event: AppEvent, window: &mut Window) -> AppPlease {
         match event {
             AppEvent::Start => {
+                eprint!("default app starting\n");
                 window.background = Color::blue(70);
+                AppPlease::Continue
+            }
+            AppEvent::End => {
+                eprint!("default app ending\n");
+                // This is ignored.
                 AppPlease::Continue
             }
             AppEvent::WindowCloseRequested => AppPlease::Terminate,
