@@ -27,8 +27,7 @@ pub struct Window {
     /// Background color, in case of letterboxing with pixels.
     pub background: Color,
     /// Desired frames per second.
-    // TODO: Switch to Duration here and add `set_fps` convenience method
-    pub fps: f64,
+    pub frame_duration: time::Duration,
     last_instant: time::Instant,
     // Keep `window` above `surface` to ensure the window is always
     // in scope for the surface.
@@ -111,7 +110,7 @@ impl Window {
                 gpu,
                 pixels,
                 background: Color::red(234),
-                fps: 1.0,
+                frame_duration: time::Duration::from_secs(1),
                 last_instant: time::Instant::now(),
                 winit_window,
                 surface,
@@ -174,6 +173,15 @@ impl Window {
         self.last_instant = new_instant;
         duration
     }
+
+    pub fn set_fps(&mut self, fps: f64) {
+        self.frame_duration = time::Duration::from_nanos((1_000_000_000.0 / fps).floor() as u64);
+    }
+
+    fn get_frame_wait(&mut self) -> time::Duration {
+        // TODO: try to converge on FPS based on work-time + wait-time.
+        self.frame_duration
+    }
 }
 
 struct Surface {
@@ -211,8 +219,7 @@ pub async fn run(mut app: Box<dyn App>) {
 
     event_loop
         .run(move |event: Event<()>, target| {
-            // TODO: try to converge on FPS based on work-time + wait-time.
-            target.set_control_flow(ControlFlow::wait_duration(fps_to_duration(window.fps)));
+            target.set_control_flow(ControlFlow::wait_duration(window.get_frame_wait()));
             if let Some(app_event) = handle_or_convert(event, &mut window, &target) {
                 if handle_app_event(&mut app, app_event, &mut window) {
                     target.exit();
@@ -330,8 +337,4 @@ fn handle_or_convert(
             None
         }
     }
-}
-
-fn fps_to_duration(fps: f64) -> time::Duration {
-    time::Duration::from_nanos((1_000_000_000.0 / fps).floor() as u64)
 }
