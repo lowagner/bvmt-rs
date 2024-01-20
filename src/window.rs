@@ -131,25 +131,45 @@ pub async fn run(mut app: Box<dyn App>) {
     env_logger::init(); // Enable logging from WGPU
     let (mut window, event_loop) = Window::new_with_loop().await;
 
+    if handle_app_event(&mut app, AppEvent::Start, &mut window) {
+        eprint!("App shut down immediately...\n");
+        return;
+    }
+
     event_loop
         .run(move |event: Event<()>, target| {
             target.set_control_flow(ControlFlow::Wait);
 
             if let Some(app_event) = handle_or_convert(event, &mut window) {
-                match app.handle(app_event, &mut window) {
-                    AppPlease::Continue => {}
-                    AppPlease::Terminate => {
-                        target.exit();
-                    }
-                    AppPlease::Replace(new_app) => {
-                        app = new_app;
-                    }
+                if handle_app_event(&mut app, app_event, &mut window) {
+                    target.exit();
                 }
             }
         })
         .expect("should run loop ok");
 }
 
+/// Ensures that the App handles an AppEvent, including moving to a new App
+/// if the App should be replaced.  Returns true iff we should stop running
+/// the program entirely.
+fn handle_app_event(app: &mut Box<dyn App>, mut app_event: AppEvent, window: &mut Window) -> bool {
+    loop {
+        match app.handle(app_event, window) {
+            AppPlease::Continue => {
+                return false;
+            }
+            AppPlease::Terminate => {
+                return true;
+            }
+            AppPlease::Replace(new_app) => {
+                *app = new_app;
+                app_event = AppEvent::Start;
+            }
+        }
+    }
+}
+
+/// Converts a winit event into an app event, or handles it for you.
 fn handle_or_convert(event: Event<()>, window: &mut Window) -> Option<AppEvent> {
     match event {
         Event::WindowEvent {

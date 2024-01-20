@@ -20,6 +20,24 @@ impl Color {
             a: 255,
         }
     }
+
+    pub fn green(g: u8) -> Self {
+        Color {
+            r: 0,
+            g,
+            b: 0,
+            a: 255,
+        }
+    }
+
+    pub fn blue(b: u8) -> Self {
+        Color {
+            r: 0,
+            g: 0,
+            b,
+            a: 255,
+        }
+    }
 }
 
 impl From<Color> for wgpu::Color {
@@ -63,6 +81,32 @@ mod test {
                 r: 103,
                 g: 0,
                 b: 0,
+                a: 255
+            },
+        );
+    }
+
+    #[test]
+    fn test_color_green() {
+        assert_eq!(
+            Color::green(51),
+            Color {
+                r: 0,
+                g: 51,
+                b: 0,
+                a: 255
+            },
+        );
+    }
+
+    #[test]
+    fn test_color_blue() {
+        assert_eq!(
+            Color::blue(72),
+            Color {
+                r: 0,
+                g: 0,
+                b: 72,
                 a: 255
             },
         );
