@@ -26,14 +26,22 @@ pub struct Window {
     /// Background color, in case of letterboxing with pixels.
     pub background: Color,
     /// Desired frames per second.
+    // TODO: Switch to Duration here and add `set_fps` convenience method
     pub fps: f64,
     last_instant: time::Instant,
+    // Keep `window` above `surface` to ensure the window is always
+    // in scope for the surface.
     window: winit::window::Window,
     surface: Surface,
+    ctrlc_receiver: sync::mpsc::Receiver<()>,
 }
 
 impl Window {
     async fn new_with_loop() -> (Self, EventLoop<()>) {
+        let (ctrlc_sender, ctrlc_receiver) = sync::mpsc::channel();
+        ctrlc::set_handler(move || ctrlc_sender.send(()).expect("should send signal"))
+            .expect("should set Ctrl-C handler");
+
         let event_loop = EventLoop::new().expect("should build a loop");
         let window = winit::window::WindowBuilder::new()
             .build(&event_loop)
@@ -102,6 +110,7 @@ impl Window {
                 last_instant: time::Instant::now(),
                 window,
                 surface: Surface { surface, config },
+                ctrlc_receiver,
             },
             event_loop,
         )
@@ -145,12 +154,7 @@ impl Surface {
 
 pub async fn run(mut app: Box<dyn App>) {
     env_logger::init(); // Enable logging from WGPU
-                        // TODO: move to the Window struct
-    let (ctrlc_sender, ctrlc_receiver) = sync::mpsc::channel();
-    ctrlc::set_handler(move || ctrlc_sender.send(()).expect("should send signal"))
-        .expect("should set Ctrl-C handler");
 
-    println!("Got it! Exiting...");
     let (mut window, event_loop) = Window::new_with_loop().await;
 
     if handle_app_event(&mut app, AppEvent::Start, &mut window) {
@@ -162,11 +166,7 @@ pub async fn run(mut app: Box<dyn App>) {
         .run(move |event: Event<()>, target| {
             // TODO: try to converge on FPS based on work-time + wait-time.
             target.set_control_flow(ControlFlow::wait_duration(fps_to_duration(window.fps)));
-            // TODO: probably can only check ctrl after certain events (e.g., AboutToWait).
-            if ctrlc_receiver.try_recv().is_ok() {
-                let _ignored = app.handle(AppEvent::End, &mut window);
-                target.exit();
-            } else if let Some(app_event) = handle_or_convert(event, &mut window) {
+            if let Some(app_event) = handle_or_convert(event, &mut window) {
                 if handle_app_event(&mut app, app_event, &mut window) {
                     target.exit();
                 }
@@ -179,6 +179,11 @@ pub async fn run(mut app: Box<dyn App>) {
 /// if the App should be replaced.  Returns true iff we should stop running
 /// the program entirely.
 fn handle_app_event(app: &mut Box<dyn App>, mut app_event: AppEvent, window: &mut Window) -> bool {
+    if app_event == AppEvent::End {
+        // Don't let the App get away with changing how it behaves here.
+        let _ignored = app.handle(AppEvent::End, window);
+        return true;
+    }
     loop {
         match app.handle(app_event, window) {
             AppPlease::Continue => {
@@ -230,7 +235,15 @@ fn handle_or_convert(event: Event<()>, window: &mut Window) -> Option<AppEvent> 
                 None
             }
         },
-        Event::AboutToWait => None,
+        Event::AboutToWait => {
+            // We'll handle random stuff here since this event is fired before
+            // waiting for the next frame.
+            if window.ctrlc_receiver.try_recv().is_ok() {
+                Some(AppEvent::End)
+            } else {
+                None
+            }
+        }
         _ => {
             eprint!("unhandled event: {:?}\n", event); // TODO: remove this eventually.
             None

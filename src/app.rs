@@ -23,6 +23,7 @@ pub enum AppPlease {
     Replace(Box<dyn App>),
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum AppEvent {
     /// The App was just started.
     Start,
@@ -40,6 +41,7 @@ pub enum AppEvent {
     TimeElapsed(time::Duration),
 }
 
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct KeyInput {
     /// The logical key pressed, dependent on layout/locale.
     pub key: Key,
@@ -62,6 +64,7 @@ impl App for DefaultApp {
                 AppPlease::Continue
             }
             AppEvent::End => {
+                // TODO: figure out why this is called twice
                 eprint!("default app ending\n");
                 // This is ignored.
                 AppPlease::Continue
