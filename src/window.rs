@@ -6,6 +6,9 @@ use crate::dimensions::Size2i;
 use crate::gpu::*;
 use crate::pixels::*;
 
+use ctrlc;
+use std::sync;
+use std::time;
 use winit::{
     event::*,
     event_loop::{ControlFlow, EventLoop},
@@ -129,6 +132,11 @@ impl Surface {
 
 pub async fn run(mut app: Box<dyn App>) {
     env_logger::init(); // Enable logging from WGPU
+    let (ctrlc_sender, ctrlc_receiver) = sync::mpsc::channel();
+    ctrlc::set_handler(move || ctrlc_sender.send(()).expect("should send signal"))
+        .expect("should set Ctrl-C handler");
+
+    println!("Got it! Exiting...");
     let (mut window, event_loop) = Window::new_with_loop().await;
 
     if handle_app_event(&mut app, AppEvent::Start, &mut window) {
@@ -136,12 +144,15 @@ pub async fn run(mut app: Box<dyn App>) {
         return;
     }
 
-    // TODO: handle Ctrl+C by passing AppEvent::End to App first.
     event_loop
         .run(move |event: Event<()>, target| {
-            target.set_control_flow(ControlFlow::Wait);
-
-            if let Some(app_event) = handle_or_convert(event, &mut window) {
+            // TODO: support other timeouts
+            target.set_control_flow(ControlFlow::wait_duration(time::Duration::from_secs(1)));
+            // TODO: probably can only check ctrl after certain events (like timeouts/TimeElapsed events).
+            if ctrlc_receiver.try_recv().is_ok() {
+                let _ignored = app.handle(AppEvent::End, &mut window);
+                target.exit();
+            } else if let Some(app_event) = handle_or_convert(event, &mut window) {
                 if handle_app_event(&mut app, app_event, &mut window) {
                     target.exit();
                 }
@@ -194,6 +205,10 @@ fn handle_or_convert(event: Event<()>, window: &mut Window) -> Option<AppEvent> 
             window.surface.resize(&mut window.gpu, physical_size);
             None
         }
-        _ => None,
+        Event::LoopExiting => Some(AppEvent::End),
+        _ => {
+            eprint!("unhandled event: {:?}\n", event); // TODO: remove this eventually.
+            None
+        }
     }
 }
