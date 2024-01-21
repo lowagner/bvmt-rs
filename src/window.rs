@@ -175,6 +175,9 @@ impl Window {
         Size2i::new(960, 512)
     }
 
+    // TODO: add `shake` method that will erratically bounce the main window.pixels
+    // vertex coordinates when drawing to the window surface.
+
     pub fn set_fps(&mut self, fps: f64) {
         self.set_frame_duration(time::Duration::from_nanos(
             (1_000_000_000.0 / fps).floor() as u64

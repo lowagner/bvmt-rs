@@ -5,6 +5,7 @@ pub use crate::color::Color;
 pub use crate::fragments::Fragments;
 pub use crate::pixels::Pixels;
 pub use crate::shader::{Shader, Shading};
+pub use crate::variables::{BuiltIn, Metadata, Variable, Variables};
 pub use crate::vertices::Vertices;
 
 use crate::dimensions::*;

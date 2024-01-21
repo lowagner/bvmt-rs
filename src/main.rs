@@ -6,6 +6,7 @@ pub mod gpu;
 pub mod options;
 pub mod pixels;
 pub mod shader;
+pub mod variables;
 pub mod vertices;
 pub mod window;
 

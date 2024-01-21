@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
-#[derive(Copy, Clone, PartialEq, Debug, Default)]
+use bytemuck::{Pod, Zeroable};
+
+#[repr(C, packed(1))] // Type `T` will only be `i32` or `f32` so packing tightly will be fine.
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Default, Pod, Zeroable)]
 pub struct Vector2<T> {
     pub x: T,
     pub y: T,
@@ -15,7 +18,8 @@ impl<T> Vector2<T> {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default)]
+#[repr(C, packed(1))] // Type `T` will only be `i32` or `f32` so packing tightly will be fine.
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Default, Pod, Zeroable)]
 pub struct Vector3<T> {
     pub x: T,
     pub y: T,
