@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
 use crate::color::*;
+use crate::dimensions::*;
+use crate::pixels::*;
 use crate::window::*;
 
 use std::time;
@@ -54,7 +56,7 @@ pub struct KeyInput {
 
 #[derive(Debug, Default)]
 pub struct DefaultApp {
-    elapsed_time: time::Duration,
+    total_elapsed_time: time::Duration,
 }
 
 impl App for DefaultApp {
@@ -62,6 +64,24 @@ impl App for DefaultApp {
         match event {
             AppEvent::Start => {
                 eprint!("default app starting\n");
+                self.total_elapsed_time = time::Duration::default();
+                window.pixels = Pixels::new(Size2i::new(100, 80));
+                window
+                    .pixels
+                    .write_pixel(&mut window.gpu, Vector2i::new(99, 0), Color::red(250));
+                window.pixels.write_pixel(
+                    &mut window.gpu,
+                    Vector2i::new(99, 79),
+                    Color {
+                        r: 250,
+                        g: 0,
+                        b: 250,
+                        a: 255,
+                    },
+                );
+                window
+                    .pixels
+                    .write_pixel(&mut window.gpu, Vector2i::new(0, 79), Color::blue(250));
                 window.background = Color::blue(70);
                 AppPlease::Continue
             }
@@ -80,12 +100,18 @@ impl App for DefaultApp {
             }
             AppEvent::TimeElapsed(duration) => {
                 eprint!("time elapsed: {:?}\n", duration);
-                self.elapsed_time += duration;
-                if self.elapsed_time > time::Duration::from_secs(8) {
-                    AppPlease::Terminate
-                } else {
-                    AppPlease::Continue
+                self.total_elapsed_time += duration;
+                if self.total_elapsed_time > time::Duration::from_secs(8) {
+                    return AppPlease::Terminate;
                 }
+                let z =
+                    (self.total_elapsed_time.as_nanos() as f64 / 1_000_000_000.0).round() as i32;
+                window.pixels.write_pixel(
+                    &mut window.gpu,
+                    Vector2i::new(z, z),
+                    Color::red((z * 25) as u8),
+                );
+                AppPlease::Continue
             }
         }
     }

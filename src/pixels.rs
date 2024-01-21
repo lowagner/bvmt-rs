@@ -23,7 +23,7 @@ pub struct Pixels {
 }
 
 impl Pixels {
-    pub fn new(&self, size: Size2i) -> Self {
+    pub fn new(size: Size2i) -> Self {
         Self {
             size,
             synced: Synced::CpuOnly,
@@ -44,15 +44,15 @@ impl Pixels {
         self.size.height()
     }
 
-    /// Writes a single pixel at the coordinates specified.  If this `Pixels`
-    /// is on the GPU, the command will be done asynchronously, i.e.,
+    /// Writes a single pixel at the coordinates specified.  If these `Pixels`
+    /// are on the GPU, the command will be done asynchronously, i.e.,
     /// the next time that the GPU flushes its commands.  This can happen
     /// automatically when the window redraws the next frame or manually
     /// if `gpu.flush()` is called.
     // TODO: consider adding `NeedIt` method here.  it only applies for GPU rendering, though.
     // TODO: double check that this does what we want with Color::TRANSPARENT.
     //       i think we want it to erase the pixel, but make sure that happens with GPU implementation.
-    pub fn writePixel(&mut self, gpu: &mut Gpu, coordinates: Vector2i, color: Color) {
+    pub fn write_pixel(&mut self, gpu: &mut Gpu, coordinates: Vector2i, color: Color) {
         let (width, height) = (self.width(), self.height());
         if coordinates.x < 0
             || coordinates.x >= width
