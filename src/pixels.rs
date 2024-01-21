@@ -2,6 +2,7 @@
 
 use crate::color::*;
 use crate::dimensions::*;
+use crate::gpu::*;
 use crate::synced::*;
 
 pub struct Pixels {
@@ -50,6 +51,62 @@ impl Pixels {
         row.resize(width, Color::default());
         array.resize(height, row);
         array
+    }
+
+    /// Puts the `Pixels` onto the GPU if they're not there already and up to date.
+    /// Afterwards, call `self.flush()` if you need the pixel update immediately.
+    /// If drawing to `window.pixels`, this will be called automatically for
+    /// you each frame before drawing to the screen.
+    // TODO: pass in a `NeedIt::Now` or `NeedIt::Later` enum, can auto-flush for us.
+    pub fn ensure_up_to_date_on_gpu(&mut self, gpu: &mut Gpu) {
+        if !self.synced.needs_gpu_update() {
+            // Everything already up to date.
+            return;
+        }
+        let (width, height) = (self.width() as u32, self.height() as usize);
+        if self.texture.is_none() {
+            self.texture = Some(gpu.create_texture(self.size));
+        }
+        let texture = self.texture.as_mut().expect("is present now for sure");
+        // We have to write multiple times to the GPU because of our pixel
+        // layout as `Vec<Vec<Color>>`.
+        // TODO: reconsider and use a single array internally, padded to rows of multiples of 256 bytes (64 colors)
+        for y in 0..height {
+            gpu.queue.write_texture(
+                wgpu::ImageCopyTexture {
+                    texture,
+                    mip_level: 0,
+                    // TODO: check if we need to flip coordinates to `height - y - 1`
+                    origin: wgpu::Origin3d {
+                        x: 0,
+                        y: y as u32,
+                        z: 0,
+                    },
+                    aspect: wgpu::TextureAspect::All,
+                },
+                bytemuck::cast_slice(&self.array[y]),
+                wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: None,
+                    rows_per_image: None,
+                },
+                wgpu::Extent3d {
+                    width,
+                    height: 0,
+                    depth_or_array_layers: 1,
+                },
+            );
+        }
+    }
+
+    pub fn ensure_up_to_date_on_cpu(&mut self, gpu: &mut Gpu) {
+        if !self.synced.needs_cpu_update() {
+            // Everything already up to date.
+            return;
+        }
+        // For GPU to CPU, see:
+        // https://github.com/gfx-rs/wgpu/tree/trunk/examples/src/hello_compute
+        todo!();
     }
 }
 

@@ -129,8 +129,7 @@ impl Window {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        // TODO: can we switch to `self.pixels.ensure_up_to_date_on_gpu(&mut self.gpu)`?
-        self.gpu.ensure_up_to_date_on_gpu(&mut self.pixels);
+        self.pixels.ensure_up_to_date_on_gpu(&mut self.gpu);
 
         let mut gpu_commands =
             self.gpu
