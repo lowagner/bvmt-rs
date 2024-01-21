@@ -88,7 +88,6 @@ impl Window {
             .copied()
             .find(|f| *f == wgpu::TextureFormat::Rgba8Unorm)
             .unwrap_or(wgpu::TextureFormat::Bgra8Unorm); // guaranteed
-                                                         // TODO: update gpu.preferred_format here before creating gpu.pixels
 
         let size = winit_window.inner_size();
         let config = wgpu::SurfaceConfiguration {
