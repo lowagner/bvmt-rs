@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct Vector2<T> {
     pub x: T,
     pub y: T,
@@ -12,6 +12,22 @@ pub type Vector2f = Vector2<f32>;
 impl<T> Vector2<T> {
     pub fn new(x: T, y: T) -> Self {
         Self { x, y }
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
+pub struct Vector3<T> {
+    pub x: T,
+    pub y: T,
+    pub z: T,
+}
+
+pub type Vector3i = Vector3<i32>;
+pub type Vector3f = Vector3<f32>;
+
+impl<T> Vector3<T> {
+    pub fn new(x: T, y: T, z: T) -> Self {
+        Self { x, y, z }
     }
 }
 

@@ -1,9 +1,12 @@
 pub mod app;
 pub mod color;
 pub mod dimensions;
+pub mod fragments;
 pub mod gpu;
 pub mod pixels;
+pub mod shader;
 mod synced;
+pub mod vertices;
 pub mod window;
 
 use app::*;

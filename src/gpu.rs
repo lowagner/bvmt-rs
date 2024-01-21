@@ -1,8 +1,13 @@
 #![allow(dead_code)]
 
-use crate::color::*;
+// Re-export GPU-related things for convenience.
+pub use crate::color::Color;
+pub use crate::fragments::Fragments;
+pub use crate::pixels::Pixels;
+pub use crate::shader::{Shader, Shading};
+pub use crate::vertices::Vertices;
+
 use crate::dimensions::*;
-use crate::pixels::*;
 use crate::synced::*;
 
 use std::iter;
@@ -90,9 +95,11 @@ impl Gpu {
         }
     }
 
-    /// Ensure calling `self.flush()` if you need the pixel update immediately.
+    /// Puts the `Pixels` onto the GPU if they're not there already and up to date.
+    /// Afterwards, call `self.flush()` if you need the pixel update immediately.
     /// If drawing to `window.pixels`, this will be called automatically for
     /// you each frame before drawing to the screen.
+    // TODO: pass in a `NeedIt::Now` or `NeedIt::Later` enum, can auto-flush for us.
     pub fn ensure_up_to_date_on_gpu(&mut self, pixels: &mut Pixels) {
         if !pixels.synced.needs_gpu_update() {
             // Everything already up to date.
@@ -143,8 +150,6 @@ impl Gpu {
         // https://github.com/gfx-rs/wgpu/tree/trunk/examples/src/hello_compute
         todo!();
     }
-
-    // TODO: shaders, consider https://github.com/EmbarkStudios/rust-gpu ???
 
     fn create_texture(&mut self, size: Size2i) -> wgpu::Texture {
         let description = wgpu::TextureDescriptor {
