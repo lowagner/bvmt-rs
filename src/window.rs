@@ -130,6 +130,8 @@ impl Window {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
+        self.gpu.ensure_up_to_date_on_gpu(&mut self.pixels);
+
         let mut gpu_commands =
             self.gpu
                 .device
@@ -336,7 +338,7 @@ fn handle_or_convert(
             window.surface.resize(&mut window.gpu, physical_size);
             None
         }
-        // NOTE! Only this function should be allowed to return `AppEvent::End`;
+        // NOTE! Only this case should be allowed to return `AppEvent::End`;
         // Use `target.exit()` in other cases where you want the loop to end.
         Event::LoopExiting => Some(AppEvent::End),
         Event::NewEvents(start_cause) => match start_cause {
