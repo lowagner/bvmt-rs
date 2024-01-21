@@ -35,6 +35,24 @@ impl<T> Vector3<T> {
     }
 }
 
+#[repr(C, packed(1))] // Type `T` will only be `i32` or `f32` so packing tightly will be fine.
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Default, Pod, Zeroable)]
+pub struct Vector4<T> {
+    pub x: T,
+    pub y: T,
+    pub z: T,
+    pub w: T,
+}
+
+pub type Vector4i = Vector4<i32>;
+pub type Vector4f = Vector4<f32>;
+
+impl<T> Vector4<T> {
+    pub fn new(x: T, y: T, z: T, w: T) -> Self {
+        Self { x, y, z, w }
+    }
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
 pub struct Size2<T> {
     width: T,
