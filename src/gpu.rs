@@ -8,7 +8,7 @@ pub use crate::shader::{Shader, Shading};
 pub use crate::vertices::Vertices;
 
 use crate::dimensions::*;
-use crate::synced::*;
+use crate::options::*;
 
 use std::iter;
 

@@ -4,7 +4,6 @@ use crate::app::*;
 use crate::color::*;
 use crate::dimensions::Size2i;
 use crate::gpu::*;
-use crate::pixels::*;
 
 use ctrlc;
 use std::iter;

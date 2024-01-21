@@ -3,7 +3,7 @@
 use crate::color::*;
 use crate::dimensions::*;
 use crate::gpu::*;
-use crate::synced::*;
+use crate::options::*;
 
 pub struct Pixels {
     pub(crate) size: Size2i,

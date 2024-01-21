@@ -1,7 +1,5 @@
 #![allow(dead_code)]
 
-// TODO: rename to an `options.rs` file and include `NeedIt` enum.
-
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub(crate) enum Synced {
     /// Not synced, the data lives only in the CPU.
