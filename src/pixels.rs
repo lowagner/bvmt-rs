@@ -44,14 +44,64 @@ impl Pixels {
         self.size.height()
     }
 
-    pub(crate) fn transparent_pixels_array(size: Size2i) -> Vec<Vec<Color>> {
-        let (width, height) = (size.width() as usize, size.height() as usize);
-        let mut array = Vec::with_capacity(height);
-        let mut row = Vec::with_capacity(width);
-        row.resize(width, Color::default());
-        array.resize(height, row);
-        array
+    /// Writes a single pixel at the coordinates specified.  If this `Pixels`
+    /// is on the GPU, the command will be done asynchronously, i.e.,
+    /// the next time that the GPU flushes its commands.  This can happen
+    /// automatically when the window redraws the next frame or manually
+    /// if `gpu.flush()` is called.
+    // TODO: double check that this does what we want with Color::TRANSPARENT.
+    //       i think we want it to erase the pixel, but make sure that happens with GPU implementation.
+    pub fn writePixel(&mut self, gpu: &mut Gpu, coordinates: Vector2i, color: Color) {
+        let (width, height) = (self.width(), self.height());
+        if coordinates.x < 0
+            || coordinates.x >= width
+            || coordinates.y < 0
+            || coordinates.y >= height
+        {
+            return;
+        }
+        if self.synced.prefers_writing_to_cpu() {
+            // Write to the CPU:
+            self.array[coordinates.y as usize][coordinates.x as usize] = color;
+            self.synced.cpu_was_updated();
+        } else {
+            let texture = self
+                .texture
+                .as_mut()
+                .expect("should have a texture since Pixels prefer GPU writes");
+            // Write to the GPU:
+            // AFAICT there's not a better way to write single pixels to the texture.
+            // That's probably ok, this isn't meant to be an efficient API.
+            let color = [color];
+            gpu.queue.write_texture(
+                wgpu::ImageCopyTexture {
+                    texture,
+                    mip_level: 0,
+                    // TODO: check if we need to flip coordinates to `height - coordinates.y - 1`
+                    origin: wgpu::Origin3d {
+                        x: coordinates.x as u32,
+                        y: coordinates.y as u32,
+                        z: 0,
+                    },
+                    aspect: wgpu::TextureAspect::All,
+                },
+                bytemuck::cast_slice(&color),
+                wgpu::ImageDataLayout {
+                    offset: 0,
+                    bytes_per_row: None,  // no rows
+                    rows_per_image: None, // no rows
+                },
+                wgpu::Extent3d {
+                    width: 1,
+                    height: 1,
+                    depth_or_array_layers: 1,
+                },
+            );
+            self.synced.gpu_was_updated();
+        }
     }
+
+    // TODO: copy(&mut self, from: DataHere { pixels: &mut Pixels, box2: Box2i }, to: Box2i)
 
     /// Puts the `Pixels` onto the GPU if they're not there already and up to date.
     /// Afterwards, call `self.flush()` if you need the pixel update immediately.
@@ -107,6 +157,15 @@ impl Pixels {
         // For GPU to CPU, see:
         // https://github.com/gfx-rs/wgpu/tree/trunk/examples/src/hello_compute
         todo!();
+    }
+
+    pub(crate) fn transparent_pixels_array(size: Size2i) -> Vec<Vec<Color>> {
+        let (width, height) = (size.width() as usize, size.height() as usize);
+        let mut array = Vec::with_capacity(height);
+        let mut row = Vec::with_capacity(width);
+        row.resize(width, Color::default());
+        array.resize(height, row);
+        array
     }
 }
 
