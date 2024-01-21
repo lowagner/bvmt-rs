@@ -49,6 +49,7 @@ impl Pixels {
     /// the next time that the GPU flushes its commands.  This can happen
     /// automatically when the window redraws the next frame or manually
     /// if `gpu.flush()` is called.
+    // TODO: consider adding `NeedIt` method here.  it only applies for GPU rendering, though.
     // TODO: double check that this does what we want with Color::TRANSPARENT.
     //       i think we want it to erase the pixel, but make sure that happens with GPU implementation.
     pub fn writePixel(&mut self, gpu: &mut Gpu, coordinates: Vector2i, color: Color) {
@@ -107,8 +108,7 @@ impl Pixels {
     /// Afterwards, call `self.flush()` if you need the pixel update immediately.
     /// If drawing to `window.pixels`, this will be called automatically for
     /// you each frame before drawing to the screen.
-    // TODO: pass in a `NeedIt::Now` or `NeedIt::Later` enum, can auto-flush for us.
-    pub fn ensure_up_to_date_on_gpu(&mut self, gpu: &mut Gpu) {
+    pub fn ensure_up_to_date_on_gpu(&mut self, gpu: &mut Gpu, need_it: NeedIt) {
         if !self.synced.needs_gpu_update() {
             // Everything already up to date.
             return;
@@ -146,6 +146,9 @@ impl Pixels {
                     depth_or_array_layers: 1,
                 },
             );
+        }
+        if need_it == NeedIt::Now {
+            gpu.flush();
         }
     }
 

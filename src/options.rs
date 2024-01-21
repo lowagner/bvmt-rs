@@ -1,6 +1,12 @@
 #![allow(dead_code)]
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum NeedIt {
+    Now,
+    Later,
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub(crate) enum Synced {
     /// Not synced, the data lives only in the CPU.
     CpuOnly,

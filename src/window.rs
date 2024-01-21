@@ -4,6 +4,7 @@ use crate::app::*;
 use crate::color::*;
 use crate::dimensions::Size2i;
 use crate::gpu::*;
+use crate::options::*;
 
 use ctrlc;
 use std::iter;
@@ -128,7 +129,11 @@ impl Window {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        self.pixels.ensure_up_to_date_on_gpu(&mut self.gpu);
+        // Technically we need the pixels *for this frame* but the pixels will be
+        // updated before other GPU commands are run with `gpu.queue.submit()` later.
+        // TODO: verify
+        self.pixels
+            .ensure_up_to_date_on_gpu(&mut self.gpu, NeedIt::Later);
 
         let mut gpu_commands =
             self.gpu
