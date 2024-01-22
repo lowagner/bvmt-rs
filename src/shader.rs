@@ -5,17 +5,6 @@ use crate::gpu::*;
 use std::marker::PhantomData;
 
 // TODO: consider using https://github.com/EmbarkStudios/rust-gpu for specifying shader code
-pub struct ShaderBuilder<
-    VertexVariables: Variables,
-    FragmentVariables: Variables,
-    GlobalVariables: Variables,
-> {
-    // TODO
-    vertex_data: PhantomData<VertexVariables>,
-    fragment_data: PhantomData<FragmentVariables>,
-    global_data: PhantomData<GlobalVariables>,
-}
-
 /* TODO: i'm thinking about shaders like this:
     vertex_function(position, variables: VertexVariables, globals: GlobalVariables)
         -> {position: V4f, FragmentVariables}
@@ -35,25 +24,24 @@ pub struct Shader<
     global_data: PhantomData<GlobalVariables>,
 }
 
+impl<V: Variables, F: Variables, G: Variables> Shader<V, F, G> {
+    // TODO: pub fn shading(v: Vertices, f: Fragments, g: G) -> Shading
+}
+
 /// A Shader with global values (uniforms) specified.
 pub struct Shading<
     VertexVariables: Variables,
     FragmentVariables: Variables,
     GlobalVariables: Variables,
 > {
-    vertex_data: PhantomData<VertexVariables>,
-    fragment_data: PhantomData<FragmentVariables>,
+    vertices: Vertices<VertexVariables>,
+    fragments: Fragments<FragmentVariables>,
     pub global_variables: GlobalVariables,
 }
 
 impl<V: Variables, F: Variables, G: Variables> Shading<V, F, G> {
-    /// Draws with a shader.
-    pub fn draw(
-        &mut self,
-        _gpu: &mut Gpu,
-        _vertices: &mut Vertices<V>,
-        _fragments: &mut Fragments,
-    ) {
+    /// Draws to the specified `pixels` with a shader.
+    pub fn draw(&mut self, _gpu: &mut Gpu, _pixels: &mut Pixels) {
         todo!();
     }
 }

@@ -6,7 +6,7 @@ pub trait Variables {
     fn list(&self) -> Vec<Variable>;
 }
 
-/// A variable that can be represented in shader code.
+/// A description of a variable that can be represented in shader code.
 #[derive(Clone, PartialEq, Debug)]
 pub enum Variable {
     Vector2f(Metadata),
