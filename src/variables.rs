@@ -1,5 +1,3 @@
-use crate::dimensions::*;
-
 use std::fmt;
 
 /// A group of variables (field names + field values) that has some reflection

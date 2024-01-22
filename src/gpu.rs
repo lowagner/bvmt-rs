@@ -39,6 +39,7 @@ impl Gpu {
             synced: Synced::GpuOnly,
             array: vec![],
             texture: Some(texture),
+            interpolated: false,
         }
     }
 

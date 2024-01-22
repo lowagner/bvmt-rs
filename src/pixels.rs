@@ -20,6 +20,10 @@ pub struct Pixels {
     /// Invariant: each `Vec` has the correct size based on `self.size`,
     /// unless the pixels are stored only on the GPU.
     pub(crate) array: Vec<Vec<Color>>,
+    /// Whether to interpolate when copying from this set of pixels to another,
+    /// or when drawing these `Pixels` to the screen (e.g., for `window.pixels`).
+    /// This can be toggled on and off at O(1), as it only affects copying.
+    pub interpolated: bool,
 }
 
 impl Pixels {
@@ -29,6 +33,7 @@ impl Pixels {
             synced: Synced::CpuOnly,
             array: Self::transparent_pixels_array(size),
             texture: None,
+            interpolated: false,
         }
     }
 
