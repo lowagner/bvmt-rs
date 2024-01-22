@@ -139,7 +139,7 @@ impl Pixels {
                     },
                     aspect: wgpu::TextureAspect::All,
                 },
-                bytemuck::cast_slice(&self.array[y]),
+                bytemuck::cast_slice(&self.array[y][0..width as usize - 1]),
                 wgpu::ImageDataLayout {
                     offset: 0,
                     bytes_per_row: None,
