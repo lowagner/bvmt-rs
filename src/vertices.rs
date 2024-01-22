@@ -4,6 +4,7 @@ use crate::gpu::*;
 
 use wgpu::util::DeviceExt; // create_buffer_init
 
+#[derive(Debug)]
 pub struct Vertices<V: Variables> {
     /// The `Variables` in `V` must be settable, because we are specifying
     /// the values of each vertex (e.g., position, color, etc.).
