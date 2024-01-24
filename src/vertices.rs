@@ -10,10 +10,11 @@ pub struct Vertices<V: Variables> {
     /// the values of each vertex (e.g., position, color, etc.).
     array: Vec<V>,
     /// Present if the vertices are on the GPU.
-    buffer: Option<wgpu::Buffer>,
+    pub(crate) buffer: Option<wgpu::Buffer>,
 }
 
 impl<V: Variables + bytemuck::Pod> Vertices<V> {
+    // TODO: probably should return the &buffer here.
     pub(crate) fn ensure_on_gpu(&mut self, gpu: &mut Gpu) {
         if self.buffer.is_some() {
             return;

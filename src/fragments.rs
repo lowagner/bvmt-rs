@@ -13,7 +13,7 @@ pub struct Fragments<F: Variables> {
     /// shader and *cannot* be set on each fragment, so they live here.
     variables_description: F,
     /// Present if these indices are on the GPU.
-    buffer: Option<wgpu::Buffer>,
+    pub(crate) buffer: Option<wgpu::Buffer>,
 }
 
 #[repr(C)]
@@ -25,6 +25,7 @@ pub struct Fragment {
 }
 
 impl<F: Variables> Fragments<F> {
+    // TODO: probably should return the &buffer here.
     pub(crate) fn ensure_on_gpu(&mut self, gpu: &mut Gpu) {
         if self.buffer.is_some() {
             return;
