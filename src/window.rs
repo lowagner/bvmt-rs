@@ -26,6 +26,8 @@ pub struct Window {
     pub pixels: Pixels,
     /// Background color, in case of letterboxing with pixels.
     pub background: Color,
+    // We'll draw to the window with a shader; users can modify it.(?)
+    // TODO: pub shader: Shader,
     /// Desired amount of time between frames.
     desired_frame_duration: time::Duration,
     last_frame_instant: time::Instant,

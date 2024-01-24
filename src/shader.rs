@@ -29,17 +29,17 @@ impl<V: Variables, F: Variables, G: Variables> Shader<V, F, G> {
 }
 
 /// A Shader with global values (uniforms) specified.
-pub struct Shading<
-    VertexVariables: Variables,
-    FragmentVariables: Variables,
-    GlobalVariables: Variables,
-> {
-    vertices: Vertices<VertexVariables>,
-    fragments: Fragments<FragmentVariables>,
+/// We erase the type information in Vertices/Fragments mostly for ergonomics,
+/// but also because we don't want these to change at this stage (they have
+/// been sent to the GPU).  Global variables *can* be modified here and this
+/// shading can be drawn multiple times with different globals.
+pub struct Shading<'a, GlobalVariables: Variables> {
+    vertices_buffer: &'a wgpu::Buffer,
+    fragments_buffer: &'a wgpu::Buffer,
     pub global_variables: GlobalVariables,
 }
 
-impl<V: Variables, F: Variables, G: Variables> Shading<V, F, G> {
+impl<'a, G: Variables> Shading<'a, G> {
     /// Draws to the specified `pixels` with a shader.
     pub fn draw(&mut self, _gpu: &mut Gpu, _pixels: &mut Pixels) {
         todo!();

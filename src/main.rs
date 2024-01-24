@@ -5,6 +5,7 @@ pub mod fragments;
 pub mod gpu;
 pub mod options;
 pub mod pixels;
+pub mod scene;
 pub mod shader;
 pub mod variables;
 pub mod vertices;

@@ -4,6 +4,7 @@
 pub use crate::color::Color;
 pub use crate::fragments::Fragments;
 pub use crate::pixels::Pixels;
+pub use crate::scene::Scene;
 pub use crate::shader::{Shader, Shading};
 pub use crate::variables::{
     BuiltIn, Location, Metadata, Variable, Variables, VariablesDeclaration,
@@ -29,6 +30,8 @@ impl Gpu {
         // TODO: see if this works.
         self.queue.submit(iter::empty());
     }
+
+    // TODO: copy(&mut self, from: DataHere { pixels: &mut Pixels, box2: Box2i }, to: DataHere)
 
     /// Creates a `Pixels` instance with the given size; these pixels will
     /// only live on the GPU, unless their data is requested on the CPU at a later time.

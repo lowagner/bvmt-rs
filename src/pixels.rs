@@ -107,8 +107,6 @@ impl Pixels {
         }
     }
 
-    // TODO: copy(&mut self, from: DataHere { pixels: &mut Pixels, box2: Box2i }, to: Box2i)
-
     /// Puts the `Pixels` onto the GPU if they're not there already and up to date.
     /// Afterwards, call `self.flush()` if you need the pixel update immediately.
     /// If drawing to `window.pixels`, this will be called automatically for
