@@ -18,17 +18,20 @@ pub struct Shader<VertexVariables: Variables, FragmentVariables: Variables, Glob
     vertex_data: PhantomData<VertexVariables>,
     fragment_data: PhantomData<FragmentVariables>,
     global_data: PhantomData<Globals>,
+    shader_module: Option<wgpu::ShaderModule>,
 }
 
 impl<V: Variables + bytemuck::Pod, F: Variables, G: Variables> Shader<V, F, G> {
     /// Returns a "Shading" of the vertices and fragments, i.e., something
     /// that is ready for the GPU to draw.
     pub fn shading<'a>(
+        &mut self,
         gpu: &mut Gpu,
         vertices: &'a mut Vertices<V>,
         fragments: &'a mut Fragments<F>,
         globals: G,
     ) -> Shading<'a, G> {
+        self.ensure_on_gpu(gpu);
         vertices.ensure_on_gpu(gpu);
         fragments.ensure_on_gpu(gpu);
         Shading {
@@ -36,6 +39,61 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Variables> Shader<V, F, G> {
             fragments_buffer: fragments.buffer.as_ref().expect("ensured to be on the GPU"),
             globals,
         }
+    }
+
+    fn ensure_on_gpu(&mut self, gpu: &mut Gpu) {
+        if self.shader_module.is_some() {
+            return;
+        }
+        /* TODO: style
+        // vertex input values:
+        struct Vertex {
+            @location(0) position: vec3<f32>,
+            // etc.
+        }
+        // vertex output values, interpolated for each triangle/fragment:
+        struct Fragment {
+            @builtin(position) clip_position: vec4<f32>,
+            @location(0) uv: vec2<f32>,
+            // etc.
+        }
+        // globals
+        struct Globals {
+            view_transform: mat4x4<f32>,
+        }
+        @group(0) @binding(0)
+        var<uniform> globals: Globals;
+        // TODO: is there a reason we can't just put these all into `globals`?
+        // globals
+        @group(1) @binding(0)
+        var pixels_texture: texture_2d<f32>;
+        @group(1) @binding(1)
+        var pixels_sampler: sampler;
+        // vertex shader
+        @vertex
+        fn vs_main(vertex: Vertex) -> Fragment {
+            var fragment: Fragment;
+            fragment.clip_position = ...;
+            fragment.uv = ...;
+            // Return fragment value for this vertex
+            // to be interpolated in the triangle face.
+            return fragment;
+        }
+        // fragment shader
+        @fragment
+        fn fs_main(in: Fragment) -> @location(0) vec4<f32> {
+            // Return color to use for this pixel.
+            return vec4<f32>(r, g, b, 1.0);
+        }
+        */
+        let mut source = ""; // TODO
+        self.shader_module = Some(
+            gpu.device
+                .create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: None, // TODO: maybe allow a label
+                    source: wgpu::ShaderSource::Wgsl(source.into()),
+                }),
+        );
     }
 }
 

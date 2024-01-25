@@ -23,6 +23,8 @@ pub struct Pixels {
     /// Whether to interpolate when copying from this set of pixels to another,
     /// or when drawing these `Pixels` to the screen (e.g., for `window.pixels`).
     /// This can be toggled on and off at O(1), as it only affects copying.
+    // TODO: use this in SamplerDescriptor { mag_filter: wgpu::FilterMode::Linear }
+    //       if interpolated, otherwise {mag_filter: wgpu::FilterMode::Nearest }.
     pub interpolated: bool,
 }
 
