@@ -12,6 +12,11 @@ pub struct Color {
 }
 
 impl Color {
+    /// Returns true iff this color is not translucent at all.
+    pub fn is_opaque(&self) -> bool {
+        self.a == 255
+    }
+
     pub fn red(r: u8) -> Self {
         Color {
             r,
@@ -109,6 +114,50 @@ mod test {
                 b: 72,
                 a: 255
             },
+        );
+    }
+
+    #[test]
+    fn test_color_is_opaque() {
+        assert_eq!(
+            Color {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 255
+            }
+            .is_opaque(),
+            true
+        );
+        assert_eq!(
+            Color {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 254
+            }
+            .is_opaque(),
+            false
+        );
+        assert_eq!(
+            Color {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 1
+            }
+            .is_opaque(),
+            false
+        );
+        assert_eq!(
+            Color {
+                r: 255,
+                g: 255,
+                b: 255,
+                a: 0
+            }
+            .is_opaque(),
+            false
         );
     }
 }
