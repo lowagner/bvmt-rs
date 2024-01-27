@@ -1,10 +1,43 @@
 use std::fmt;
 
+use crate::dimensions::*;
+
+use bytemuck::{Pod, Zeroable};
+
+#[repr(C)]
+#[derive(Copy, Clone, PartialEq, Debug, Default, Pod, Zeroable)]
+pub struct DefaultVertexVariables {
+    location: Vector3f,
+}
+
+impl Variables for DefaultVertexVariables {
+    fn list(&self) -> Vec<Variable> {
+        vec![Variable::Vector3f(Metadata {
+            name: "location".into(),
+            location: Location::Index(0),
+        })]
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
+pub struct DefaultFragmentVariables {
+    // Note that we don't need to add these variables into the `Fragment`s,
+    // since this is only constructed on the GPU via the vertex shader.
+}
+
+impl Variables for DefaultFragmentVariables {
+    fn list(&self) -> Vec<Variable> {
+        vec![built_in(BuiltIn::ClipPosition)]
+    }
+}
+
 /// A group of variables (field names + field values) that has some reflection
 /// properties, i.e., the ability to return a list of all values.
 pub trait Variables {
     fn list(&self) -> Vec<Variable>;
 }
+
+// TODO: pub trait Globals: Variables { fn get(Variable) -> Value; }
 
 /// A description of a variable that can be represented in shader code.
 #[derive(Clone, PartialEq, Debug)]
@@ -58,7 +91,7 @@ impl fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Location::Index(index) => write!(f, "@location({})", index),
-            Location::BuiltIn(BuiltIn::Position) => write!(f, "@builtin(position)"),
+            Location::BuiltIn(BuiltIn::ClipPosition) => write!(f, "@builtin(position)"),
         }
     }
 }
@@ -66,13 +99,13 @@ impl fmt::Display for Location {
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum BuiltIn {
     /// Should correspond to a Vector4f for clip coordinates.
-    Position,
+    ClipPosition,
 }
 
 pub fn built_in(built_in: BuiltIn) -> Variable {
     match built_in {
-        BuiltIn::Position => Variable::Vector4f(Metadata {
-            name: "position".into(),
+        BuiltIn::ClipPosition => Variable::Vector4f(Metadata {
+            name: "clip_position".into(),
             location: Location::BuiltIn(built_in),
         }),
     }
@@ -85,10 +118,10 @@ mod test {
     #[test]
     fn test_variables_built_in() {
         assert_eq!(
-            built_in(BuiltIn::Position),
+            built_in(BuiltIn::ClipPosition),
             Variable::Vector4f(Metadata {
-                location: Location::BuiltIn(BuiltIn::Position),
-                name: "position".into()
+                location: Location::BuiltIn(BuiltIn::ClipPosition),
+                name: "clip_position".into()
             })
         );
     }
@@ -96,7 +129,7 @@ mod test {
     #[test]
     fn test_variables_write_struct() {
         let variables = vec![
-            built_in(BuiltIn::Position),
+            built_in(BuiltIn::ClipPosition),
             Variable::Vector2f(Metadata {
                 name: "my_vector2f".into(),
                 location: Location::Index(3),

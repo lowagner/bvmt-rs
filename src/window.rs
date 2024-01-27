@@ -2,12 +2,11 @@
 
 use crate::app::*;
 use crate::color::*;
-use crate::dimensions::Size2i;
+use crate::dimensions::*;
 use crate::gpu::*;
 use crate::options::*;
 
 use ctrlc;
-use std::iter;
 use std::sync;
 use std::time;
 use winit::{
@@ -26,8 +25,9 @@ pub struct Window {
     pub pixels: Pixels,
     /// Background color, in case of letterboxing with pixels.
     pub background: Color,
-    // We'll draw to the window with a shader; users can modify it.(?)
-    // TODO: pub shader: Shader,
+    /// Shader for drawing pixels to the window.
+    shader: Shader<DefaultVertexVariables, DefaultFragmentVariables, WindowGlobals>,
+    shading: Shading<WindowGlobals>,
     /// Desired amount of time between frames.
     desired_frame_duration: time::Duration,
     last_frame_instant: time::Instant,
@@ -117,6 +117,7 @@ impl Window {
                 desired_frame_duration: initial_frame_duration,
                 last_frame_wait: initial_frame_duration,
                 last_frame_instant: time::Instant::now(),
+                shader: Shader::default(),
                 winit_window,
                 surface,
                 ctrlc_receiver,
@@ -126,10 +127,7 @@ impl Window {
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        let window_texture = self.surface.wgpu_surface.get_current_texture()?;
-        let window_view = window_texture
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
+        let surface_texture = self.surface.wgpu_surface.get_current_texture()?;
 
         // Technically we need the pixels *for this frame* but the pixels will be
         // updated before other GPU commands are run with `gpu.queue.submit()` later.
@@ -137,34 +135,13 @@ impl Window {
         self.pixels
             .ensure_up_to_date_on_gpu(&mut self.gpu, NeedIt::Later);
 
-        let mut gpu_commands =
-            self.gpu
-                .device
-                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("window"),
-                });
-
-        {
-            let mut render_pass = gpu_commands.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: Some("window.pixels"),
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &window_view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(self.background.into()),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                occlusion_query_set: None,
-                timestamp_writes: None,
-            });
-
-            // TODO: draw window.pixels
+        Scene {
+            background: self.background,
+            shadings: vec![self.shading.borrow()],
         }
+        .draw_to_texture(&mut self.gpu, &mut surface_texture.texture, Some("window"));
 
-        self.gpu.queue.submit(iter::once(gpu_commands.finish()));
-        window_texture.present();
+        surface_texture.present();
 
         Ok(())
     }
@@ -222,6 +199,36 @@ impl Window {
             self.last_frame_wait = time::Duration::from_nanos(this_frame_wait_nanos as u64);
         }
         self.last_frame_wait
+    }
+}
+
+struct WindowGlobals {
+    pub top_left: Vector2f,
+    pub bottom_right: Vector2f,
+}
+
+impl std::default::Default for WindowGlobals {
+    fn default() -> Self {
+        Self {
+            // TODO: determine if we need to swap up/down here.
+            top_left: Vector2f::new(-1.0, 1.0),
+            bottom_right: Vector2f::new(1.0, -1.0),
+        }
+    }
+}
+
+impl Variables for WindowGlobals {
+    fn list(&self) -> Vec<Variable> {
+        vec![
+            Variable::Vector2f(Metadata {
+                name: "top_left".into(),
+                location: Location::Index(0),
+            }),
+            Variable::Vector2f(Metadata {
+                name: "bottom_right".into(),
+                location: Location::Index(1),
+            }),
+        ]
     }
 }
 

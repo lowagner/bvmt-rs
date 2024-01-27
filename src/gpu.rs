@@ -3,11 +3,13 @@
 // Re-export GPU-related things for convenience.
 pub use crate::color::Color;
 pub use crate::fragments::Fragments;
+pub use crate::options::NeedIt;
 pub use crate::pixels::Pixels;
 pub use crate::scene::Scene;
 pub use crate::shader::{Shader, Shading};
 pub use crate::variables::{
-    BuiltIn, Location, Metadata, Variable, Variables, VariablesDeclaration,
+    BuiltIn, DefaultFragmentVariables, DefaultVertexVariables, Location, Metadata, Variable,
+    Variables, VariablesDeclaration,
 };
 pub use crate::vertices::Vertices;
 
