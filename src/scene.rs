@@ -1,32 +1,37 @@
 #![allow(dead_code)]
 
 use crate::gpu::*;
-use crate::shader::ShadingAllBorrowed;
 
-pub struct Scene<'a, G: Variables + 'a, Shadings: IntoIterator<Item = ShadingAllBorrowed<'a, G>>> {
-    /// Color to use before drawing anything.
+pub struct Scene {
     pub background: Color,
-    pub shadings: Shadings,
 }
 
-impl<'a, G: Variables + 'a, Shadings: IntoIterator<Item = ShadingAllBorrowed<'a, G>>>
-    Scene<'a, G, S>
-{
-    /// Draws this `Scene` to the specified `Pixels`.
-    pub fn draw(&self, gpu: &mut Gpu, pixels: &mut Pixels) {
+impl Scene {
+    pub fn draw_on<'a, F: FnOnce(&mut SceneDrawer<'a>)>(
+        &self,
+        gpu: &mut Gpu,
+        pixels: &'a mut Pixels,
+        draw_callback: F,
+    ) {
         // Technically we need the pixels *for this frame* but the pixels will be
         // updated before other GPU commands are run with `gpu.queue.submit()` later.
         // TODO: verify
         pixels.ensure_up_to_date_on_gpu(gpu, NeedIt::Later);
-        // TODO: add name for Pixels as a label.
-        self.draw_to_texture(gpu, pixels.texture.as_mut().expect("ensured on GPU"), None);
+
+        self.draw_on_texture(
+            gpu,
+            pixels.texture.as_mut().expect("ensured on GPU"),
+            None,
+            draw_callback,
+        )
     }
 
-    pub(crate) fn draw_to_texture(
+    pub(crate) fn draw_on_texture<'a, F: FnOnce(&mut SceneDrawer<'a>)>(
         &self,
         gpu: &mut Gpu,
-        texture: &mut wgpu::Texture,
+        texture: &'a mut wgpu::Texture,
         label: Option<&str>,
+        draw_callback: F,
     ) {
         let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let mut gpu_commands = gpu
@@ -34,7 +39,7 @@ impl<'a, G: Variables + 'a, Shadings: IntoIterator<Item = ShadingAllBorrowed<'a,
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label });
 
         {
-            let mut render_pass = gpu_commands.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let render_pass = gpu_commands.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &texture_view,
@@ -56,12 +61,28 @@ impl<'a, G: Variables + 'a, Shadings: IntoIterator<Item = ShadingAllBorrowed<'a,
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
-
-            for shading in self.shadings {
-                shading.draw_to_render_pass(gpu, &mut render_pass);
-            }
+            let mut drawer = SceneDrawer {
+                render_pass: &render_pass,
+                gpu,
+            };
+            draw_callback(&mut drawer);
         }
-
         gpu.queue.submit(std::iter::once(gpu_commands.finish()));
+    }
+}
+
+struct SceneDrawer<'a> {
+    render_pass: &'a wgpu::RenderPass<'a>,
+    gpu: &'a mut Gpu,
+}
+
+impl<'a> SceneDrawer<'a> {
+    pub fn draw<V: Variables + bytemuck::Pod, F: Variables, G: Variables>(
+        &mut self,
+        shader: &mut Shader<V, F, G>,
+        vertices: &mut Vertices<V>,
+        fragments: &mut Fragments<F>,
+    ) {
+        shader.draw_to_render_pass(&mut self.gpu, &mut self.render_pass, vertices, fragments);
     }
 }

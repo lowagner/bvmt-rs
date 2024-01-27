@@ -11,7 +11,7 @@ pub struct Fragments<F: Variables> {
     /// The `Variables` here don't need to be settable, just self-descriptive.
     /// I.e., these variables are interpolated from the outputs of the vertex
     /// shader and *cannot* be set on each fragment, so they live here.
-    variables_description: F,
+    pub(crate) variables: F,
     /// Present if these indices are on the GPU.
     pub(crate) buffer: Option<wgpu::Buffer>,
 }
@@ -25,6 +25,14 @@ pub struct Fragment {
 }
 
 impl<F: Variables> Fragments<F> {
+    pub fn new(variables: F, array: Vec<Fragment>) -> Self {
+        Self {
+            variables,
+            array,
+            buffer: None,
+        }
+    }
+
     // TODO: probably should return the &buffer here.
     pub(crate) fn ensure_on_gpu(&mut self, gpu: &mut Gpu) {
         if self.buffer.is_some() {

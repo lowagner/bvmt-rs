@@ -14,6 +14,13 @@ pub struct Vertices<V: Variables> {
 }
 
 impl<V: Variables + bytemuck::Pod> Vertices<V> {
+    pub fn new(array: Vec<V>) -> Self {
+        Self {
+            array,
+            buffer: None,
+        }
+    }
+
     // TODO: probably should return the &buffer here.
     pub(crate) fn ensure_on_gpu(&mut self, gpu: &mut Gpu) {
         if self.buffer.is_some() {

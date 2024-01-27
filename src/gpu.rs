@@ -6,7 +6,7 @@ pub use crate::fragments::Fragments;
 pub use crate::options::NeedIt;
 pub use crate::pixels::Pixels;
 pub use crate::scene::Scene;
-pub use crate::shader::{Shader, Shading};
+pub use crate::shader::Shader;
 pub use crate::variables::{
     BuiltIn, DefaultFragmentVariables, DefaultVertexVariables, Location, Metadata, Variable,
     Variables, VariablesDeclaration,

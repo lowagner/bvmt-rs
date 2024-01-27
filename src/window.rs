@@ -27,7 +27,8 @@ pub struct Window {
     pub background: Color,
     /// Shader for drawing pixels to the window.
     shader: Shader<DefaultVertexVariables, DefaultFragmentVariables, WindowGlobals>,
-    shading: Shading<WindowGlobals>,
+    vertices: Vertices<DefaultVertexVariables>,
+    fragments: Fragments<DefaultFragmentVariables>,
     /// Desired amount of time between frames.
     desired_frame_duration: time::Duration,
     last_frame_instant: time::Instant,
@@ -109,6 +110,9 @@ impl Window {
         let pixels = gpu.pixels(Window::default_resolution());
 
         let initial_frame_duration = time::Duration::from_secs(1);
+        let shader = Shader::default();
+        let vertices = Vertices::new(vec![]);
+        let fragments = Fragments::new(DefaultFragmentVariables {}, vec![]);
         (
             Self {
                 gpu,
@@ -117,7 +121,9 @@ impl Window {
                 desired_frame_duration: initial_frame_duration,
                 last_frame_wait: initial_frame_duration,
                 last_frame_instant: time::Instant::now(),
-                shader: Shader::default(),
+                shader,
+                vertices,
+                fragments,
                 winit_window,
                 surface,
                 ctrlc_receiver,
@@ -127,7 +133,7 @@ impl Window {
     }
 
     fn render(&mut self) -> Result<(), wgpu::SurfaceError> {
-        let surface_texture = self.surface.wgpu_surface.get_current_texture()?;
+        let mut surface_texture = self.surface.wgpu_surface.get_current_texture()?;
 
         // Technically we need the pixels *for this frame* but the pixels will be
         // updated before other GPU commands are run with `gpu.queue.submit()` later.
@@ -135,11 +141,17 @@ impl Window {
         self.pixels
             .ensure_up_to_date_on_gpu(&mut self.gpu, NeedIt::Later);
 
-        Scene {
+        let scene = Scene {
             background: self.background,
-            shadings: vec![self.shading.borrow()],
-        }
-        .draw_to_texture(&mut self.gpu, &mut surface_texture.texture, Some("window"));
+        };
+        scene.draw_on_texture(
+            &mut self.gpu,
+            &mut surface_texture.texture,
+            Some("window"),
+            |drawer| {
+                // TODO:
+            },
+        );
 
         surface_texture.present();
 
