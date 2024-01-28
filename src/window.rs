@@ -244,6 +244,16 @@ impl Variables for WindowGlobals {
     }
 }
 
+impl Globals for WindowGlobals {
+    fn get(&self, name: &str) -> Value {
+        match name {
+            "top_left" => Value::Vector2f(self.top_left),
+            "bottom_right" => Value::Vector2f(self.bottom_right),
+            _ => panic!("invalid window global: {}", name),
+        }
+    }
+}
+
 struct Surface {
     wgpu_surface: wgpu::Surface,
     config: wgpu::SurfaceConfiguration,

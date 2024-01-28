@@ -14,14 +14,14 @@ and
 can the globals go into both vertex and fragment functions?  or do we need separate globals for each shader part?
 */
 #[derive(Debug, Default)]
-pub struct Shader<VertexVariables: Variables, FragmentVariables: Variables, Globals: Variables> {
-    pub globals: Globals,
-    vertex_data: PhantomData<VertexVariables>,
-    fragment_data: PhantomData<FragmentVariables>,
+pub struct Shader<V: Variables, F: Variables, G: Globals> {
+    pub globals: G,
+    vertex_data: PhantomData<V>,
+    fragment_data: PhantomData<F>,
     shader_module: Option<wgpu::ShaderModule>,
 }
 
-impl<V: Variables + bytemuck::Pod, F: Variables, G: Variables> Shader<V, F, G> {
+impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
     /// Draws to the specified `pixels` with a shader.
     pub fn draw(
         &mut self,
@@ -54,10 +54,8 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Variables> Shader<V, F, G> {
     ) {
         self.ensure_on_gpu(gpu);
 
-        // TODO: we need some way of grabbing self.globals and uploading to GPU.
-        //       we could have a method like `globals.upload(gpu)`,
-        //       or if we have getters/setters we can do something like
-        //       `globals.list().map(|x| globals.get(x))`
+        // TODO: use getters to upload all globals to the GPU.
+        //       `globals.list().map(|x| globals.get(x.name()))`
         // TODO: we should create a shader ID and only set the pipeline
         //       if we haven't done it yet or it's a new shader.
         // TODO: render_pass.set_pipeline(shader.render_pipeline)

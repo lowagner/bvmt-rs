@@ -94,7 +94,7 @@ pub struct SceneDrawer {
 // TODO: implement Deref<Gpu> for SceneDrawer in case people need the GPU.
 
 impl SceneDrawer {
-    pub fn draw<V: Variables + bytemuck::Pod, F: Variables, G: Variables>(
+    pub fn draw<V: Variables + bytemuck::Pod, F: Variables, G: Globals>(
         &mut self,
         shader: &mut Shader<V, F, G>,
         vertices: &mut Vertices<V>,
