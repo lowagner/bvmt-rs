@@ -1,5 +1,6 @@
 pub mod app;
 pub mod color;
+pub mod defaults;
 pub mod dimensions;
 pub mod fragments;
 pub mod gpu;

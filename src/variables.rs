@@ -2,34 +2,7 @@ use std::fmt;
 
 use crate::dimensions::*;
 
-use bytemuck::{Pod, Zeroable};
-
-#[repr(C)]
-#[derive(Copy, Clone, PartialEq, Debug, Default, Pod, Zeroable)]
-pub struct DefaultVertexVariables {
-    location: Vector3f,
-}
-
-impl Variables for DefaultVertexVariables {
-    fn list(&self) -> Vec<Variable> {
-        vec![Variable::Vector3f(Metadata {
-            name: "location".into(),
-            location: Location::Index(0),
-        })]
-    }
-}
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
-pub struct DefaultFragmentVariables {
-    // Note that we don't need to add these variables into the `Fragment`s,
-    // since this is only constructed on the GPU via the vertex shader.
-}
-
-impl Variables for DefaultFragmentVariables {
-    fn list(&self) -> Vec<Variable> {
-        vec![built_in(BuiltIn::ClipPosition)]
-    }
-}
+pub use crate::defaults::{DefaultFragmentVariables, DefaultGlobals, DefaultVertexVariables};
 
 /// A group of variables (field names + field values) that has some reflection
 /// properties, i.e., the ability to return a list of all values.
@@ -37,7 +10,18 @@ pub trait Variables {
     fn list(&self) -> Vec<Variable>;
 }
 
-// TODO: pub trait Globals: Variables { fn get(Variable) -> Value; }
+pub trait Globals: Variables {
+    fn get(&self, name: &str) -> Value;
+}
+
+/// A variable value (i.e., to pass to the GPU shader).
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum Value {
+    Vector2f(Vector2f),
+    Vector3f(Vector3f),
+    Vector4f(Vector4f),
+    Matrix4f(Matrix4f),
+}
 
 /// A description of a variable that can be represented in shader code.
 #[derive(Clone, PartialEq, Debug)]
@@ -45,25 +29,18 @@ pub enum Variable {
     Vector2f(Metadata),
     Vector3f(Metadata),
     Vector4f(Metadata),
+    Matrix4f(Metadata),
     // TODO: Pixels (e.g., Texture)
 }
 
-pub struct VariablesDeclaration<'a> {
-    pub name: &'a str,
-    pub variables: &'a Vec<Variable>,
-}
-
-impl<'a> fmt::Display for VariablesDeclaration<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "struct {} {{\n", self.name)?;
-        for variable in self.variables {
-            match variable {
-                Variable::Vector2f(metadata) => write!(f, "    {}: vec2<f32>,\n", metadata)?,
-                Variable::Vector3f(metadata) => write!(f, "    {}: vec3<f32>,\n", metadata)?,
-                Variable::Vector4f(metadata) => write!(f, "    {}: vec4<f32>,\n", metadata)?,
-            }
+impl Variable {
+    pub fn name(&self) -> &str {
+        match self {
+            Variable::Vector2f(Metadata { name, .. }) => &name,
+            Variable::Vector3f(Metadata { name, .. }) => &name,
+            Variable::Vector4f(Metadata { name, .. }) => &name,
+            Variable::Matrix4f(Metadata { name, .. }) => &name,
         }
-        write!(f, "}}\n")
     }
 }
 
@@ -111,9 +88,65 @@ pub fn built_in(built_in: BuiltIn) -> Variable {
     }
 }
 
+pub struct VariablesDeclaration<'a> {
+    pub name: &'a str,
+    pub variables: &'a Vec<Variable>,
+}
+
+impl<'a> fmt::Display for VariablesDeclaration<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "struct {} {{\n", self.name)?;
+        for variable in self.variables {
+            match variable {
+                Variable::Vector2f(metadata) => write!(f, "    {}: vec2<f32>,\n", metadata)?,
+                Variable::Vector3f(metadata) => write!(f, "    {}: vec3<f32>,\n", metadata)?,
+                Variable::Vector4f(metadata) => write!(f, "    {}: vec4<f32>,\n", metadata)?,
+                Variable::Matrix4f(metadata) => write!(f, "    {}: mat4x4<f32>,\n", metadata)?,
+            }
+        }
+        write!(f, "}}\n")
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_variables_name() {
+        assert_eq!(
+            Variable::Vector2f(Metadata {
+                location: Location::Index(0),
+                name: "asdf_2f".into()
+            })
+            .name(),
+            "asdf_2f",
+        );
+        assert_eq!(
+            Variable::Vector3f(Metadata {
+                location: Location::Index(0),
+                name: "hey_hey_five".into()
+            })
+            .name(),
+            "hey_hey_five",
+        );
+        assert_eq!(
+            Variable::Vector4f(Metadata {
+                location: Location::Index(0),
+                name: "one_two_three".into()
+            })
+            .name(),
+            "one_two_three",
+        );
+        assert_eq!(
+            Variable::Matrix4f(Metadata {
+                location: Location::Index(0),
+                name: "quad_tree".into()
+            })
+            .name(),
+            "quad_tree",
+        );
+    }
 
     #[test]
     fn test_variables_built_in() {

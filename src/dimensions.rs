@@ -53,6 +53,33 @@ impl<T> Vector4<T> {
     }
 }
 
+#[repr(C, packed(1))] // Type `T` will only be `i32` or `f32` so packing tightly will be fine.
+#[derive(Copy, Clone, PartialEq, Debug, Default, Pod, Zeroable)]
+pub struct Matrix4<T: Zero + One> {
+    pub x: Vector4<T>,
+    pub y: Vector4<T>,
+    pub z: Vector4<T>,
+    pub w: Vector4<T>,
+}
+
+impl<T: Zero + One> Matrix4<T> {
+    pub fn new(x: Vector4<T>, y: Vector4<T>, z: Vector4<T>, w: Vector4<T>) -> Self {
+        Self { x, y, z, w }
+    }
+
+    pub fn identity() -> Matrix4<T> {
+        Matrix4::new(
+            Vector4::new(T::one(), T::zero(), T::zero(), T::zero()),
+            Vector4::new(T::zero(), T::one(), T::zero(), T::zero()),
+            Vector4::new(T::zero(), T::zero(), T::one(), T::zero()),
+            Vector4::new(T::zero(), T::zero(), T::zero(), T::one()),
+        )
+    }
+}
+
+pub type Matrix4i = Matrix4<i32>;
+pub type Matrix4f = Matrix4<f32>;
+
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Default)]
 pub struct Size2<T> {
     width: T,
@@ -202,6 +229,38 @@ fn max<T: Copy + PartialOrd>(a: T, b: T) -> T {
         a
     } else {
         b
+    }
+}
+
+pub trait One {
+    fn one() -> Self;
+}
+
+impl One for i32 {
+    fn one() -> Self {
+        1
+    }
+}
+
+impl One for f32 {
+    fn one() -> Self {
+        1.0
+    }
+}
+
+pub trait Zero {
+    fn zero() -> Self;
+}
+
+impl Zero for i32 {
+    fn zero() -> Self {
+        0
+    }
+}
+
+impl Zero for f32 {
+    fn zero() -> Self {
+        0.0
     }
 }
 
