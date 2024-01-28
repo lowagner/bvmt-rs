@@ -7,7 +7,7 @@ pub struct Scene {
 }
 
 impl Scene {
-    pub fn draw_on<'a, F: FnOnce(&mut SceneDrawer<'a>)>(
+    pub fn draw_on<F: FnOnce(&mut SceneDrawer)>(
         &self,
         gpu: &mut Gpu,
         pixels: &mut Pixels,
@@ -26,7 +26,7 @@ impl Scene {
         )
     }
 
-    pub(crate) fn draw_on_texture<'a, F: FnOnce(&mut SceneDrawer<'a>)>(
+    pub(crate) fn draw_on_texture<F: FnOnce(&mut SceneDrawer)>(
         &self,
         gpu: &mut Gpu,
         texture: &mut wgpu::Texture,
@@ -38,59 +38,70 @@ impl Scene {
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label });
         {
-            let lifetime = 1i32;
-            let mut render_pass = gpu_commands.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &texture_view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: if self.background.is_opaque() {
-                            wgpu::LoadOp::Clear(self.background.into())
-                        } else {
-                            // TODO: if background.a < 255 but not == 0, then we need to
-                            // render a translucent rectangle before drawing.
-                            // This could be a cool "hit head" effect, since previous frames
-                            // will stick around a bit.  Would need to depend on fps.
-                            wgpu::LoadOp::Load
+            // We're extending the lifetime here of render_pass to make SceneDrawer simpler
+            // (i.e., no lifetime parameter), which is ok because SceneDrawer is in scope
+            // only in this block (and can't be copied/cloned in the callback).
+            let mut render_pass = unsafe {
+                extend_lifetime(gpu_commands.begin_render_pass(&wgpu::RenderPassDescriptor {
+                    label,
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &texture_view,
+                        resolve_target: None,
+                        ops: wgpu::Operations {
+                            load: if self.background.is_opaque() {
+                                wgpu::LoadOp::Clear(self.background.into())
+                            } else {
+                                // TODO: if background.a < 255 but not == 0, then we need to
+                                // render a translucent rectangle before drawing.
+                                // This could be a cool "hit head" effect, since previous frames
+                                // will stick around a bit.  Would need to depend on fps.
+                                wgpu::LoadOp::Load
+                            },
+                            store: wgpu::StoreOp::Store,
                         },
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                occlusion_query_set: None,
-                timestamp_writes: None,
-            });
-            /*
+                    })],
+                    depth_stencil_attachment: None,
+                    occlusion_query_set: None,
+                    timestamp_writes: None,
+                }))
+            };
             let mut drawer = SceneDrawer {
-                lifetime: &lifetime,
                 gpu,
                 render_pass: &mut render_pass,
             };
 
             draw_callback(&mut drawer);
-            */
         }
 
         gpu.queue.submit(std::iter::once(gpu_commands.finish()));
     }
 }
 
-pub struct SceneDrawer<'a> {
-    lifetime: &'a i32,
-    gpu: &'a mut Gpu,
-    render_pass: &'a mut wgpu::RenderPass<'a>,
+unsafe fn extend_lifetime<'a>(r: wgpu::RenderPass<'a>) -> wgpu::RenderPass<'static> {
+    std::mem::transmute::<wgpu::RenderPass<'a>, wgpu::RenderPass<'static>>(r)
+}
+
+/// SceneDrawer must not be copyable/clonable or otherwise escape the callback
+/// in which it can be referenced, otherwise these pointer types will fail.
+pub struct SceneDrawer {
+    gpu: *mut Gpu,
+    /// Note that RenderPass doesn't actually have `static` lifetime, but
+    /// we don't need a lifetime parameter since this SceneDrawer does not
+    /// escape the scope in which the RenderPass is valid.
+    render_pass: *mut wgpu::RenderPass<'static>,
 }
 
 // TODO: implement Deref<Gpu> for SceneDrawer in case people need the GPU.
 
-impl<'a> SceneDrawer<'a> {
+impl SceneDrawer {
     pub fn draw<V: Variables + bytemuck::Pod, F: Variables, G: Variables>(
         &mut self,
         shader: &mut Shader<V, F, G>,
         vertices: &mut Vertices<V>,
         fragments: &mut Fragments<F>,
     ) {
-        shader.draw_to_render_pass(self.gpu, self.render_pass, vertices, fragments);
+        unsafe {
+            shader.draw_to_render_pass(&mut *self.gpu, &mut *self.render_pass, vertices, fragments);
+        }
     }
 }
