@@ -230,7 +230,7 @@ impl std::default::Default for WindowGlobals {
 }
 
 impl Variables for WindowGlobals {
-    fn list(&self) -> Vec<Variable> {
+    fn list() -> Vec<Variable> {
         vec![
             Variable::Vector2f(Metadata {
                 name: "top_left".into(),

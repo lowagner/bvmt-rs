@@ -11,7 +11,7 @@ pub struct DefaultVertexVariables {
 }
 
 impl Variables for DefaultVertexVariables {
-    fn list(&self) -> Vec<Variable> {
+    fn list() -> Vec<Variable> {
         vec![Variable::Vector3f(Metadata {
             name: "location".into(),
             location: Location::Index(0),
@@ -27,7 +27,7 @@ pub struct DefaultFragmentVariables {
 }
 
 impl Variables for DefaultFragmentVariables {
-    fn list(&self) -> Vec<Variable> {
+    fn list() -> Vec<Variable> {
         vec![built_in(BuiltIn::ClipPosition)]
     }
 }
@@ -46,7 +46,7 @@ impl std::default::Default for DefaultGlobals {
 }
 
 impl Variables for DefaultGlobals {
-    fn list(&self) -> Vec<Variable> {
+    fn list() -> Vec<Variable> {
         vec![Variable::Matrix4f(Metadata {
             name: "view_transform".into(),
             // TODO: do we even need Location for Globals?
@@ -73,7 +73,7 @@ mod test {
     fn test_default_globals_can_iterate_safely() {
         let mut globals_count = 0;
         let globals = DefaultGlobals::default();
-        for variable in globals.list() {
+        for variable in DefaultGlobals::list() {
             let _ = globals.get(variable.name());
             globals_count += 1;
         }

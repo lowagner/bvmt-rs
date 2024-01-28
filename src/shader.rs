@@ -113,7 +113,7 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
             return vec4<f32>(r, g, b, 1.0);
         }
         */
-        let mut source = ""; // TODO
+        let source = self.get_source();
         self.shader_module = Some(
             gpu.device
                 .create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -123,5 +123,10 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
         );
 
         // TODO: add pipeline_layout & render_pipeline
+    }
+
+    fn get_source(&self) -> String {
+        // TODO:
+        "".into()
     }
 }

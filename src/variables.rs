@@ -5,11 +5,12 @@ use crate::dimensions::*;
 pub use crate::defaults::{DefaultFragmentVariables, DefaultGlobals, DefaultVertexVariables};
 
 /// A group of variables (field names + field values) that has some reflection
-/// properties, i.e., the ability to return a list of all values.
+/// properties, i.e., the ability to return a list of all variable descriptions.
 pub trait Variables {
-    fn list(&self) -> Vec<Variable>;
+    fn list() -> Vec<Variable>;
 }
 
+/// A group of variables that also can be queried by name to get their values.
 pub trait Globals: Variables {
     fn get(&self, name: &str) -> Value;
 }
