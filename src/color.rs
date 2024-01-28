@@ -12,10 +12,27 @@ pub struct Color {
 }
 
 impl Color {
-    /// Returns true iff this color is not translucent at all.
+    /// Returns true iff this color is not transparent or translucent at all.
     pub fn is_opaque(&self) -> bool {
         self.a == 255
     }
+
+    /// Returns true iff this color is neither opaque nor 100% transparent.
+    pub fn is_translucent(&self) -> bool {
+        self.a > 0 && self.a < 255
+    }
+
+    /// Returns true iff this color is 100% transparent.
+    pub fn is_transparent(&self) -> bool {
+        self.a == 0
+    }
+
+    pub const TRANSPARENT: Color = Color {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 0,
+    };
 
     pub fn red(r: u8) -> Self {
         Color {
@@ -157,6 +174,95 @@ mod test {
                 a: 0
             }
             .is_opaque(),
+            false
+        );
+    }
+
+    #[test]
+    fn test_color_is_translucent() {
+        assert_eq!(
+            Color {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 1,
+            }
+            .is_translucent(),
+            true
+        );
+        assert_eq!(
+            Color {
+                r: 255,
+                g: 255,
+                b: 255,
+                a: 254
+            }
+            .is_translucent(),
+            true
+        );
+        assert_eq!(
+            Color {
+                r: 255,
+                g: 255,
+                b: 255,
+                a: 0,
+            }
+            .is_translucent(),
+            false
+        );
+        assert_eq!(
+            Color {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 255,
+            }
+            .is_translucent(),
+            false
+        );
+    }
+
+    #[test]
+    fn test_color_is_transparent() {
+        assert!(Color::TRANSPARENT.is_transparent());
+        assert_eq!(
+            Color {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 0,
+            }
+            .is_transparent(),
+            true
+        );
+        assert_eq!(
+            Color {
+                r: 255,
+                g: 255,
+                b: 255,
+                a: 0
+            }
+            .is_transparent(),
+            true
+        );
+        assert_eq!(
+            Color {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 1,
+            }
+            .is_transparent(),
+            false
+        );
+        assert_eq!(
+            Color {
+                r: 0,
+                g: 0,
+                b: 0,
+                a: 255,
+            }
+            .is_transparent(),
             false
         );
     }
