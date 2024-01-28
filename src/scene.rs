@@ -84,11 +84,11 @@ unsafe fn extend_lifetime<'a>(r: wgpu::RenderPass<'a>) -> wgpu::RenderPass<'stat
 /// SceneDrawer must not be copyable/clonable or otherwise escape the callback
 /// in which it can be referenced, otherwise these pointer types will fail.
 pub struct SceneDrawer {
-    gpu: *mut Gpu,
+    pub(crate) gpu: *mut Gpu,
     /// Note that RenderPass doesn't actually have `static` lifetime, but
     /// we don't need a lifetime parameter since this SceneDrawer does not
     /// escape the scope in which the RenderPass is valid.
-    render_pass: *mut wgpu::RenderPass<'static>,
+    pub(crate) render_pass: *mut wgpu::RenderPass<'static>,
 }
 
 // TODO: implement Deref<Gpu> for SceneDrawer in case people need the GPU.

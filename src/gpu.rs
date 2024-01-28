@@ -23,6 +23,8 @@ pub struct Gpu {
     pub(crate) queue: wgpu::Queue,
 }
 
+// TODO: how many commands actually need to modify device/queue?
+//       we probably can get away with `&mut Gpu` -> `& Gpu` everywhere.
 impl Gpu {
     /// Flushes any commands sent to the GPU, e.g., for writing pixels from CPU to GPU memory.
     /// If you don't need a GPU update immediately, then prefer waiting for the

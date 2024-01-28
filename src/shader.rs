@@ -30,36 +30,19 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Variables> Shader<V, F, G> {
         vertices: &mut Vertices<V>,
         fragments: &mut Fragments<F>,
     ) {
-        // Technically we need the pixels *for this frame* but the pixels will be
-        // updated before other GPU commands are run with `gpu.queue.submit()` later.
-        // TODO: verify
-        pixels.ensure_up_to_date_on_gpu(gpu, NeedIt::Later);
-
-        let texture = pixels.texture.as_mut().expect("ensured on GPU");
-        let texture_view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-
-        let mut gpu_commands = gpu
-            .device
-            // TODO: add a label from pixels??
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-
-        let mut render_pass = gpu_commands.begin_render_pass(&wgpu::RenderPassDescriptor {
-            // TODO: add a label from pixels??
-            label: None,
-            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                view: &texture_view,
-                resolve_target: None,
-                ops: wgpu::Operations {
-                    load: wgpu::LoadOp::Load, // load existing pixels into texture
-                    store: wgpu::StoreOp::Store,
-                },
-            })],
-            depth_stencil_attachment: None,
-            occlusion_query_set: None,
-            timestamp_writes: None,
+        let scene = Scene {
+            background: Color::TRANSPARENT,
+        };
+        scene.draw_on(gpu, pixels, |drawer| unsafe {
+            // `unsafe` because we can't pass `self` in like this:
+            // drawer.draw(&mut self, vertices, fragments);
+            self.draw_to_render_pass(
+                &mut *drawer.gpu,
+                &mut *drawer.render_pass,
+                vertices,
+                fragments,
+            );
         });
-
-        self.draw_to_render_pass(gpu, &mut render_pass, vertices, fragments);
     }
 
     pub(crate) fn draw_to_render_pass<'a>(
