@@ -153,7 +153,7 @@ mod test {
         assert_eq!(
             my_code,
             "struct MySuperShaderStructX {\n    \
-            @builtin(position) position: vec4<f32>,\n    \
+            @builtin(position) clip_position: vec4<f32>,\n    \
             @location(3) my_vector2f: vec2<f32>,\n    \
             @location(29) my_vector3f: vec3<f32>,\n    \
             @location(17) my_vector4f: vec4<f32>,\n\

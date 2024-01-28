@@ -5,7 +5,7 @@ pub use crate::color::Color;
 pub use crate::fragments::Fragments;
 pub use crate::options::NeedIt;
 pub use crate::pixels::Pixels;
-pub use crate::scene::Scene;
+pub use crate::scene::{Scene, SceneDrawer};
 pub use crate::shader::Shader;
 pub use crate::variables::{
     BuiltIn, DefaultFragmentVariables, DefaultVertexVariables, Location, Metadata, Variable,

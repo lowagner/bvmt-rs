@@ -10,7 +10,7 @@ impl Scene {
     pub fn draw_on<'a, F: FnOnce(&mut SceneDrawer<'a>)>(
         &self,
         gpu: &mut Gpu,
-        pixels: &'a mut Pixels,
+        pixels: &mut Pixels,
         draw_callback: F,
     ) {
         // Technically we need the pixels *for this frame* but the pixels will be
@@ -29,7 +29,7 @@ impl Scene {
     pub(crate) fn draw_on_texture<'a, F: FnOnce(&mut SceneDrawer<'a>)>(
         &self,
         gpu: &mut Gpu,
-        texture: &'a mut wgpu::Texture,
+        texture: &mut wgpu::Texture,
         label: Option<&str>,
         draw_callback: F,
     ) {
@@ -37,9 +37,9 @@ impl Scene {
         let mut gpu_commands = gpu
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label });
-
         {
-            let render_pass = gpu_commands.begin_render_pass(&wgpu::RenderPassDescriptor {
+            let lifetime = 1i32;
+            let mut render_pass = gpu_commands.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label,
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
                     view: &texture_view,
@@ -61,20 +61,28 @@ impl Scene {
                 occlusion_query_set: None,
                 timestamp_writes: None,
             });
+            /*
             let mut drawer = SceneDrawer {
-                render_pass: &render_pass,
+                lifetime: &lifetime,
                 gpu,
+                render_pass: &mut render_pass,
             };
+
             draw_callback(&mut drawer);
+            */
         }
+
         gpu.queue.submit(std::iter::once(gpu_commands.finish()));
     }
 }
 
-struct SceneDrawer<'a> {
-    render_pass: &'a wgpu::RenderPass<'a>,
+pub struct SceneDrawer<'a> {
+    lifetime: &'a i32,
     gpu: &'a mut Gpu,
+    render_pass: &'a mut wgpu::RenderPass<'a>,
 }
+
+// TODO: implement Deref<Gpu> for SceneDrawer in case people need the GPU.
 
 impl<'a> SceneDrawer<'a> {
     pub fn draw<V: Variables + bytemuck::Pod, F: Variables, G: Variables>(
@@ -83,6 +91,6 @@ impl<'a> SceneDrawer<'a> {
         vertices: &mut Vertices<V>,
         fragments: &mut Fragments<F>,
     ) {
-        shader.draw_to_render_pass(&mut self.gpu, &mut self.render_pass, vertices, fragments);
+        shader.draw_to_render_pass(self.gpu, self.render_pass, vertices, fragments);
     }
 }
