@@ -214,19 +214,11 @@ impl Window {
     }
 }
 
+// TODO: `globals` macro for generating the struct plus `Variables` and `Globals` traits.
 struct WindowGlobals {
-    pub top_left: Vector2f,
-    pub bottom_right: Vector2f,
-}
-
-impl std::default::Default for WindowGlobals {
-    fn default() -> Self {
-        Self {
-            // TODO: determine if we need to swap up/down here.
-            top_left: Vector2f::new(-1.0, 1.0),
-            bottom_right: Vector2f::new(1.0, -1.0),
-        }
-    }
+    top_left: Vector2f,
+    bottom_right: Vector2f,
+    // TODO: `pixels` should probably live here.
 }
 
 impl Variables for WindowGlobals {
@@ -250,6 +242,16 @@ impl Globals for WindowGlobals {
             "top_left" => Value::Vector2f(self.top_left),
             "bottom_right" => Value::Vector2f(self.bottom_right),
             _ => panic!("invalid window global: {}", name),
+        }
+    }
+}
+
+impl std::default::Default for WindowGlobals {
+    fn default() -> Self {
+        Self {
+            // TODO: determine if we need to swap up/down here.
+            top_left: Vector2f::new(-1.0, 1.0),
+            bottom_right: Vector2f::new(1.0, -1.0),
         }
     }
 }

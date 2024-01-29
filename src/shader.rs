@@ -59,6 +59,7 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
         // TODO: we should create a shader ID and only set the pipeline
         //       if we haven't done it yet or it's a new shader.
         // TODO: render_pass.set_pipeline(shader.render_pipeline)
+        // TODO: render_pass.set_bind_group(bind_global.group, bind_group { 0: pixel_view, 1: sampler }, &[])
         todo!();
     }
 
