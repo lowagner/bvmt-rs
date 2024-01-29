@@ -34,13 +34,13 @@ impl Variables for DefaultFragmentVariables {
 
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub struct DefaultGlobals {
-    view_transform: Matrix4f,
+    view: Matrix4f,
 }
 
 impl std::default::Default for DefaultGlobals {
     fn default() -> Self {
         Self {
-            view_transform: Matrix4f::identity(),
+            view: Matrix4f::identity(),
         }
     }
 }
@@ -48,7 +48,7 @@ impl std::default::Default for DefaultGlobals {
 impl Variables for DefaultGlobals {
     fn list() -> Vec<Variable> {
         vec![Variable::Matrix4f(Metadata {
-            name: "view_transform".into(),
+            name: "view".into(),
             // TODO: do we even need Location for Globals?
             // some live in bind groups, etc.
             location: Location::Index(0),
@@ -59,7 +59,7 @@ impl Variables for DefaultGlobals {
 impl Globals for DefaultGlobals {
     fn get(&self, name: &str) -> Value {
         match name {
-            "view_transform" => Value::Matrix4f(self.view_transform),
+            "view" => Value::Matrix4f(self.view),
             _ => panic!("invalid default global: {}", name),
         }
     }
@@ -81,23 +81,20 @@ mod test {
     }
 
     #[test]
-    fn test_default_globals_initializes_view_transform_to_identity() {
+    fn test_default_globals_initializes_view_to_identity() {
         let globals = DefaultGlobals::default();
-        assert_eq!(
-            globals.get("view_transform"),
-            Value::Matrix4f(Matrix4f::identity())
-        );
+        assert_eq!(globals.get("view"), Value::Matrix4f(Matrix4f::identity()));
     }
 
     #[test]
-    fn test_default_globals_can_return_modified_view_transform() {
+    fn test_default_globals_can_return_modified_view() {
         let mut globals = DefaultGlobals::default();
-        globals.view_transform.x = Vector4f::new(4.0, 3.0, 2.0, 1.0);
-        globals.view_transform.y = Vector4f::new(40.0, 30.0, 20.0, 10.0);
-        globals.view_transform.z = Vector4f::new(400.0, 300.0, 200.0, 100.0);
-        globals.view_transform.w = Vector4f::new(4000.0, 3000.0, 2000.0, 1000.0);
+        globals.view.x = Vector4f::new(4.0, 3.0, 2.0, 1.0);
+        globals.view.y = Vector4f::new(40.0, 30.0, 20.0, 10.0);
+        globals.view.z = Vector4f::new(400.0, 300.0, 200.0, 100.0);
+        globals.view.w = Vector4f::new(4000.0, 3000.0, 2000.0, 1000.0);
         assert_eq!(
-            globals.get("view_transform"),
+            globals.get("view"),
             Value::Matrix4f(Matrix4f {
                 x: Vector4f::new(4.0, 3.0, 2.0, 1.0),
                 y: Vector4f::new(40.0, 30.0, 20.0, 10.0),
