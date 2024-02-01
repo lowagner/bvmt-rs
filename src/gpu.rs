@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 // Re-export GPU-related things for convenience.
+pub use crate::bindings::Binding;
 pub use crate::color::Color;
 pub use crate::defaults::{DefaultFragmentVariables, DefaultGlobals, DefaultVertexVariables};
 pub use crate::fragments::Fragments;
@@ -9,8 +10,7 @@ pub use crate::pixels::Pixels;
 pub use crate::scene::{Scene, SceneDrawer};
 pub use crate::shader::Shader;
 pub use crate::variables::{
-    built_in, BuiltIn, Globals, Location, Metadata, Value, Variable, Variables,
-    VariablesDeclaration,
+    built_in, BuiltIn, Globals, Location, Metadata, Value, Variable, Variables, VariablesStruct,
 };
 pub use crate::vertices::Vertices;
 

@@ -1,6 +1,8 @@
 use std::fmt;
 
+use crate::bindings::*;
 use crate::dimensions::*;
+use crate::pixels::*;
 
 pub use crate::defaults::{DefaultFragmentVariables, DefaultGlobals, DefaultVertexVariables};
 
@@ -13,6 +15,7 @@ pub trait Variables {
 /// A group of variables that also can be queried by name to get their values.
 pub trait Globals: Variables {
     fn get(&self, name: &str) -> Value;
+    fn bindings<'a>(&'a self) -> Vec<Binding<'a>>;
 }
 
 /// A variable value (i.e., to pass to the GPU shader).
@@ -31,7 +34,6 @@ pub enum Variable {
     Vector3f(Metadata),
     Vector4f(Metadata),
     Matrix4f(Metadata),
-    // TODO: Pixels (e.g., Texture)
 }
 
 impl Variable {
@@ -63,6 +65,8 @@ pub enum Location {
     Index(u16),
     /// Used if the variable is a built-in value.
     BuiltIn(BuiltIn),
+    /// Used if the variable is in a group binding.
+    GroupBinding(u16, u16),
 }
 
 impl fmt::Display for Location {
@@ -70,6 +74,9 @@ impl fmt::Display for Location {
         match self {
             Location::Index(index) => write!(f, "@location({})", index),
             Location::BuiltIn(BuiltIn::ClipPosition) => write!(f, "@builtin(position)"),
+            Location::GroupBinding(group, binding) => {
+                write!(f, "@group({}) @binding({})", group, binding)
+            }
         }
     }
 }
@@ -89,15 +96,15 @@ pub fn built_in(built_in: BuiltIn) -> Variable {
     }
 }
 
-pub struct VariablesDeclaration<'a> {
-    pub name: &'a str,
-    pub variables: &'a Vec<Variable>,
+pub struct VariablesStruct {
+    pub name: String,
+    pub variables: Vec<Variable>,
 }
 
-impl<'a> fmt::Display for VariablesDeclaration<'a> {
+impl fmt::Display for VariablesStruct {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "struct {} {{\n", self.name)?;
-        for variable in self.variables {
+        for variable in &self.variables {
             match variable {
                 Variable::Vector2f(metadata) => write!(f, "    {}: vec2<f32>,\n", metadata)?,
                 Variable::Vector3f(metadata) => write!(f, "    {}: vec3<f32>,\n", metadata)?,
@@ -179,9 +186,9 @@ mod test {
         ];
         let my_code = format!(
             "{}",
-            VariablesDeclaration {
-                variables: &variables,
-                name: "MySuperShaderStructX",
+            VariablesStruct {
+                variables,
+                name: "MySuperShaderStructX".into(),
             }
         );
         assert_eq!(

@@ -218,7 +218,7 @@ impl Window {
 struct WindowGlobals {
     top_left: Vector2f,
     bottom_right: Vector2f,
-    // TODO: `pixels` should probably live here.
+    // TODO: super_pixels: Pixels,
 }
 
 impl Variables for WindowGlobals {
@@ -243,6 +243,11 @@ impl Globals for WindowGlobals {
             "bottom_right" => Value::Vector2f(self.bottom_right),
             _ => panic!("invalid window global: {}", name),
         }
+    }
+
+    fn bindings<'a>(&'a self) -> Vec<Binding<'a>> {
+        // TODO: add superpixels
+        vec![]
     }
 }
 

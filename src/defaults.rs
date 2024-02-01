@@ -63,6 +63,10 @@ impl Globals for DefaultGlobals {
             _ => panic!("invalid default global: {}", name),
         }
     }
+
+    fn bindings<'a>(&'a self) -> Vec<Binding<'a>> {
+        vec![]
+    }
 }
 
 #[cfg(test)]
