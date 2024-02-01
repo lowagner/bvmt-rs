@@ -5,6 +5,7 @@ use crate::dimensions::*;
 use crate::gpu::*;
 use crate::options::*;
 
+#[derive(Debug)]
 pub struct Pixels {
     pub(crate) size: Size2i,
     pub(crate) synced: Synced,

@@ -1,6 +1,5 @@
 use std::fmt;
 
-use crate::bindings::*;
 use crate::dimensions::*;
 use crate::pixels::*;
 
@@ -12,19 +11,14 @@ pub trait Variables {
     fn list() -> Vec<Variable>;
 }
 
-/// A group of variables that also can be queried by name to get their values.
-pub trait Globals: Variables {
-    fn get(&self, name: &str) -> Value;
-    fn bindings<'a>(&'a self) -> Vec<Binding<'a>>;
-}
-
 /// A variable value (i.e., to pass to the GPU shader).
+/// Includes the name of the variable for reflection purposes.
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum Value {
-    Vector2f(Vector2f),
-    Vector3f(Vector3f),
-    Vector4f(Vector4f),
-    Matrix4f(Matrix4f),
+pub enum Value<'a> {
+    Vector2f(&'a str, &'a Vector2f),
+    Vector3f(&'a str, &'a Vector3f),
+    Vector4f(&'a str, &'a Vector4f),
+    Matrix4f(&'a str, &'a Matrix4f),
 }
 
 /// A description of a variable that can be represented in shader code.
@@ -34,6 +28,17 @@ pub enum Variable {
     Vector3f(Metadata),
     Vector4f(Metadata),
     Matrix4f(Metadata),
+}
+
+impl<'a> Value<'a> {
+    pub fn name(&'a self) -> &'a str {
+        match self {
+            Value::Vector2f(name, _) => &name,
+            Value::Vector3f(name, _) => &name,
+            Value::Vector4f(name, _) => &name,
+            Value::Matrix4f(name, _) => &name,
+        }
+    }
 }
 
 impl Variable {
@@ -65,8 +70,6 @@ pub enum Location {
     Index(u16),
     /// Used if the variable is a built-in value.
     BuiltIn(BuiltIn),
-    /// Used if the variable is in a group binding.
-    GroupBinding(u16, u16),
 }
 
 impl fmt::Display for Location {
@@ -74,9 +77,6 @@ impl fmt::Display for Location {
         match self {
             Location::Index(index) => write!(f, "@location({})", index),
             Location::BuiltIn(BuiltIn::ClipPosition) => write!(f, "@builtin(position)"),
-            Location::GroupBinding(group, binding) => {
-                write!(f, "@group({}) @binding({})", group, binding)
-            }
         }
     }
 }
@@ -119,6 +119,26 @@ impl fmt::Display for VariablesStruct {
 #[cfg(test)]
 mod test {
     use super::*;
+
+    #[test]
+    fn test_values_name() {
+        assert_eq!(
+            Value::Vector2f("it".into(), &Vector2f::default()).name(),
+            "it",
+        );
+        assert_eq!(
+            Value::Vector3f("has".into(), &Vector3f::default()).name(),
+            "has",
+        );
+        assert_eq!(
+            Value::Vector4f("been".into(), &Vector4f::default()).name(),
+            "been",
+        );
+        assert_eq!(
+            Value::Matrix4f("excellent".into(), &Matrix4f::default()).name(),
+            "excellent",
+        );
+    }
 
     #[test]
     fn test_variables_name() {

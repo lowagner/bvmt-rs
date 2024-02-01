@@ -4,6 +4,7 @@ pub mod color;
 pub mod defaults;
 pub mod dimensions;
 pub mod fragments;
+pub mod globals;
 pub mod gpu;
 pub mod options;
 pub mod pixels;

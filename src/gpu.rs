@@ -1,16 +1,17 @@
 #![allow(dead_code)]
 
 // Re-export GPU-related things for convenience.
-pub use crate::bindings::Binding;
+pub use crate::bindings::{Bind, UniformStruct};
 pub use crate::color::Color;
 pub use crate::defaults::{DefaultFragmentVariables, DefaultGlobals, DefaultVertexVariables};
 pub use crate::fragments::Fragments;
+pub use crate::globals::Globals;
 pub use crate::options::NeedIt;
 pub use crate::pixels::Pixels;
 pub use crate::scene::{Scene, SceneDrawer};
 pub use crate::shader::Shader;
 pub use crate::variables::{
-    built_in, BuiltIn, Globals, Location, Metadata, Value, Variable, Variables, VariablesStruct,
+    built_in, BuiltIn, Location, Metadata, Value, Variable, Variables, VariablesStruct,
 };
 pub use crate::vertices::Vertices;
 
@@ -22,6 +23,7 @@ use std::iter;
 pub struct Gpu {
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
+    // TODO: add a list of samplers based on what pixel interpolation people want.
 }
 
 // TODO: how many commands actually need to modify device/queue?

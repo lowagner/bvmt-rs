@@ -221,33 +221,20 @@ struct WindowGlobals {
     // TODO: super_pixels: Pixels,
 }
 
-impl Variables for WindowGlobals {
-    fn list() -> Vec<Variable> {
-        vec![
-            Variable::Vector2f(Metadata {
-                name: "top_left".into(),
-                location: Location::Index(0),
-            }),
-            Variable::Vector2f(Metadata {
-                name: "bottom_right".into(),
-                location: Location::Index(1),
-            }),
-        ]
-    }
-}
-
 impl Globals for WindowGlobals {
-    fn get(&self, name: &str) -> Value {
-        match name {
-            "top_left" => Value::Vector2f(self.top_left),
-            "bottom_right" => Value::Vector2f(self.bottom_right),
-            _ => panic!("invalid window global: {}", name),
-        }
-    }
-
-    fn bindings<'a>(&'a self) -> Vec<Binding<'a>> {
+    fn binds<'a>(&'a self) -> Vec<Bind<'a>> {
         // TODO: add superpixels
-        vec![]
+        vec![Bind::Struct(
+            0,
+            0,
+            UniformStruct {
+                name: "Globals",
+                values: vec![
+                    Value::Vector2f("top_left", &self.top_left),
+                    Value::Vector2f("bottom_right", &self.bottom_right),
+                ],
+            },
+        )]
     }
 }
 
