@@ -1,5 +1,5 @@
 pub mod app;
-pub mod bindings;
+pub mod binds;
 pub mod color;
 pub mod defaults;
 pub mod dimensions;

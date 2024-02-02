@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 // Re-export GPU-related things for convenience.
-pub use crate::bindings::{Bind, UniformStruct};
+pub use crate::binds::{Bind, UniformStruct};
 pub use crate::color::Color;
 pub use crate::defaults::{DefaultFragmentVariables, DefaultGlobals, DefaultVertexVariables};
 pub use crate::fragments::Fragments;

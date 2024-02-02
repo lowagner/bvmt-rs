@@ -3,8 +3,6 @@
 use crate::pixels::Pixels;
 use crate::variables::Value;
 
-// TODO: should probably rename this file to `binds.rs`
-
 /// For use with binding global values to shaders.
 #[derive(Clone, Debug)]
 pub enum Bind<'a> {
