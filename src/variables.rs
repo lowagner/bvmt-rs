@@ -1,7 +1,6 @@
 use std::fmt;
 
 use crate::dimensions::*;
-use crate::pixels::*;
 
 pub use crate::defaults::{DefaultFragmentVariables, DefaultGlobals, DefaultVertexVariables};
 

@@ -17,14 +17,14 @@ use winit::{
 pub struct Window {
     /// The GPU device that this window is using.
     pub gpu: Gpu,
-    /// Pixels that will be sent to the GPU every frame.  Note that
-    /// these will *not* automatically stay in sync with the window size;
-    /// `window.pixels.size()` corresponds to the app's display resolution.
-    /// In case of any mismatch, these pixels are scaled and centered in
-    /// the available inner area of the window, maintaining aspect ratio.
-    pub pixels: Pixels,
-    /// Background color, in case of letterboxing with pixels.
-    pub background: Color,
+    /// Includes the pixels and other things for drawing to the window.
+    // Note `pixels` is nested in here so that we can borrow `window.gpu`
+    // and `window.bvmt.binds()` for drawing to the shader.  If rust ever
+    // supports partial borrowing (https://github.com/rust-lang/rfcs/issues/1215)
+    // then we could implement `Globals` for `Window`, or at least create
+    // a helper function `window.pixels()` that grabs `window.bvmt.pixels`
+    // without borrowing from the entire window.
+    pub bvmt: WindowGlobals,
     /// Shader for drawing pixels to the window.
     shader: Shader<DefaultVertexVariables, DefaultFragmentVariables, WindowGlobals>,
     vertices: Vertices<DefaultVertexVariables>,
@@ -42,6 +42,28 @@ pub struct Window {
 }
 
 impl Window {
+    pub fn default_resolution() -> Size2i {
+        Size2i::new(960, 512)
+    }
+
+    // TODO: add `shake` method that will erratically bounce the main window.bvmt
+    // vertex coordinates when drawing to the window surface.
+
+    pub fn set_fps(&mut self, fps: f64) {
+        self.set_frame_duration(time::Duration::from_nanos(
+            (1_000_000_000.0 / fps).floor() as u64
+        ));
+    }
+
+    pub fn set_frame_duration(&mut self, new_frame_duration: time::Duration) {
+        self.desired_frame_duration = new_frame_duration;
+        // TODO: update self.last_frame_wait to make this calculation smoother.
+    }
+
+    pub(crate) fn id(&self) -> winit::window::WindowId {
+        self.winit_window.id()
+    }
+
     async fn new_with_loop() -> (Self, EventLoop<()>) {
         let (ctrlc_sender, ctrlc_receiver) = sync::mpsc::channel();
         ctrlc::set_handler(move || ctrlc_sender.send(()).expect("should send signal"))
@@ -107,23 +129,19 @@ impl Window {
             config,
         };
         surface.reconfigure(&mut gpu);
-        let pixels = gpu.pixels(Window::default_resolution());
 
         let initial_frame_duration = time::Duration::from_secs(1);
         let shader = Shader::default();
-        let vertices = Vertices::new(vec![]);
-        let fragments = Fragments::new(DefaultFragmentVariables {}, vec![]);
         (
             Self {
                 gpu,
-                pixels,
-                background: Color::red(234),
                 desired_frame_duration: initial_frame_duration,
                 last_frame_wait: initial_frame_duration,
                 last_frame_instant: time::Instant::now(),
+                bvmt: WindowGlobals::default(),
                 shader,
-                vertices,
-                fragments,
+                vertices: Vertices::new(vec![]),
+                fragments: Fragments::new(DefaultFragmentVariables {}, vec![]),
                 winit_window,
                 surface,
                 ctrlc_receiver,
@@ -138,11 +156,12 @@ impl Window {
         // Technically we need the pixels *for this frame* but the pixels will be
         // updated before other GPU commands are run with `gpu.queue.submit()` later.
         // TODO: verify
-        self.pixels
+        self.bvmt
+            .pixels
             .ensure_up_to_date_on_gpu(&mut self.gpu, NeedIt::Later);
 
         let scene = Scene {
-            background: self.background,
+            background: self.bvmt.background,
         };
         scene.draw_on_texture(
             &mut self.gpu,
@@ -156,28 +175,6 @@ impl Window {
         surface_texture.present();
 
         Ok(())
-    }
-
-    pub(crate) fn id(&self) -> winit::window::WindowId {
-        self.winit_window.id()
-    }
-
-    pub fn default_resolution() -> Size2i {
-        Size2i::new(960, 512)
-    }
-
-    // TODO: add `shake` method that will erratically bounce the main window.pixels
-    // vertex coordinates when drawing to the window surface.
-
-    pub fn set_fps(&mut self, fps: f64) {
-        self.set_frame_duration(time::Duration::from_nanos(
-            (1_000_000_000.0 / fps).floor() as u64
-        ));
-    }
-
-    pub fn set_frame_duration(&mut self, new_frame_duration: time::Duration) {
-        self.desired_frame_duration = new_frame_duration;
-        // TODO: update self.last_frame_wait to make this calculation smoother.
     }
 
     // TODO: call this on Ctrl+Z -> Resume so time doesn't go crazy
@@ -215,36 +212,52 @@ impl Window {
 }
 
 // TODO: `globals` macro for generating the struct plus `Variables` and `Globals` traits.
-struct WindowGlobals {
+pub struct WindowGlobals {
+    /// Pixels that will be sent to the GPU every frame.  Note that
+    /// these will *not* automatically stay in sync with the window size;
+    /// `window.bvmt.pixels.size()` corresponds to the app's display resolution.
+    /// In case of any mismatch, these pixels are scaled and centered in
+    /// the available inner area of the window, maintaining aspect ratio.
+    pub pixels: Pixels,
+    /// Background color, in case of letterboxing with pixels.
+    pub background: Color,
+    /// Corner of the screen where the pixels will start displaying.
     top_left: Vector2f,
+    /// Corner of the screen where the pixels stop.
     bottom_right: Vector2f,
-    // TODO: super_pixels: Pixels,
-}
-
-impl Globals for WindowGlobals {
-    fn binds<'a>(&'a self) -> Vec<Bind<'a>> {
-        // TODO: add superpixels
-        vec![Bind::Struct(
-            0,
-            0,
-            UniformStruct {
-                name: "Globals",
-                values: vec![
-                    Value::Vector2f("top_left", &self.top_left),
-                    Value::Vector2f("bottom_right", &self.bottom_right),
-                ],
-            },
-        )]
-    }
 }
 
 impl std::default::Default for WindowGlobals {
     fn default() -> Self {
         Self {
+            pixels: Pixels::new(Window::default_resolution()),
+            background: Color::red(234),
             // TODO: determine if we need to swap up/down here.
             top_left: Vector2f::new(-1.0, 1.0),
             bottom_right: Vector2f::new(1.0, -1.0),
         }
+    }
+}
+
+impl Globals for WindowGlobals {
+    fn binds<'a>(&'a self) -> Vec<Bind<'a>> {
+        vec![
+            Bind::Struct(
+                0,
+                0,
+                UniformStruct {
+                    name: "Globals",
+                    // NOTE! `background` should *not* be in this list of binds.
+                    // The background color is passed in a different way (via `Scene`)
+                    // and doesn't need to be bound to the GPU like these values.
+                    values: vec![
+                        Value::Vector2f("top_left", &self.top_left),
+                        Value::Vector2f("bottom_right", &self.bottom_right),
+                    ],
+                },
+            ),
+            Bind::Pixels(1, 0, &self.pixels),
+        ]
     }
 }
 

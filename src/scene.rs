@@ -99,9 +99,16 @@ impl SceneDrawer {
         shader: &mut Shader<V, F, G>,
         vertices: &mut Vertices<V>,
         fragments: &mut Fragments<F>,
+        globals: &G,
     ) {
         unsafe {
-            shader.draw_to_render_pass(&mut *self.gpu, &mut *self.render_pass, vertices, fragments);
+            shader.draw_to_render_pass(
+                &mut *self.gpu,
+                &mut *self.render_pass,
+                vertices,
+                fragments,
+                globals,
+            );
         }
     }
 }

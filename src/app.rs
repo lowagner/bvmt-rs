@@ -12,8 +12,6 @@ pub use winit::keyboard::{Key, NamedKey, NativeKey};
 
 pub trait App {
     fn handle(&mut self, event: AppEvent, window: &mut Window) -> AppPlease;
-    // TODO: is this even necessary? `fn draw(window: &mut Window);`
-    //       we'll have logic for the GPU to automatically upscale the window.pixels
 }
 
 pub enum AppPlease {
@@ -65,11 +63,13 @@ impl App for DefaultApp {
             AppEvent::Start => {
                 eprint!("default app starting\n");
                 self.total_elapsed_time = time::Duration::default();
-                window.pixels = Pixels::new(Size2i::new(100, 80));
-                window
-                    .pixels
-                    .write_pixel(&mut window.gpu, Vector2i::new(99, 0), Color::red(250));
-                window.pixels.write_pixel(
+                window.bvmt.pixels = Pixels::new(Size2i::new(100, 80));
+                window.bvmt.pixels.write_pixel(
+                    &mut window.gpu,
+                    Vector2i::new(99, 0),
+                    Color::red(250),
+                );
+                window.bvmt.pixels.write_pixel(
                     &mut window.gpu,
                     Vector2i::new(99, 79),
                     Color {
@@ -79,10 +79,12 @@ impl App for DefaultApp {
                         a: 255,
                     },
                 );
-                window
-                    .pixels
-                    .write_pixel(&mut window.gpu, Vector2i::new(0, 79), Color::blue(250));
-                window.background = Color::blue(70);
+                window.bvmt.pixels.write_pixel(
+                    &mut window.gpu,
+                    Vector2i::new(0, 79),
+                    Color::blue(250),
+                );
+                window.bvmt.background = Color::blue(70);
                 AppPlease::Continue
             }
             AppEvent::End => {
@@ -106,7 +108,7 @@ impl App for DefaultApp {
                 }
                 let z =
                     (self.total_elapsed_time.as_nanos() as f64 / 1_000_000_000.0).round() as i32;
-                window.pixels.write_pixel(
+                window.bvmt.pixels.write_pixel(
                     &mut window.gpu,
                     Vector2i::new(z, z),
                     Color::red((z * 25) as u8),

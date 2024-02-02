@@ -15,9 +15,9 @@ can the globals go into both vertex and fragment functions?  or do we need separ
 */
 #[derive(Debug, Default)]
 pub struct Shader<V: Variables, F: Variables, G: Globals> {
-    pub globals: G,
     vertex_data: PhantomData<V>,
     fragment_data: PhantomData<F>,
+    globals: PhantomData<G>,
     shader_module: Option<wgpu::ShaderModule>,
 }
 
@@ -29,6 +29,7 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
         pixels: &mut Pixels,
         vertices: &mut Vertices<V>,
         fragments: &mut Fragments<F>,
+        globals: &G,
     ) {
         let scene = Scene {
             background: Color::TRANSPARENT,
@@ -41,6 +42,7 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
                 &mut *drawer.render_pass,
                 vertices,
                 fragments,
+                globals,
             );
         });
     }
@@ -51,6 +53,7 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
         render_pass: &mut wgpu::RenderPass<'a>,
         vertices: &mut Vertices<V>,
         fragments: &mut Fragments<F>,
+        globals: &G,
     ) {
         self.ensure_on_gpu(gpu);
 
@@ -65,9 +68,6 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
 
     // TODO: option to draw only certain fragments, e.g., a range of fragments.
     // multiply by three when passing to render_pass.draw_indexed
-    pub(crate) fn write_globals(&mut self, gpu: &mut Gpu) {
-        todo!();
-    }
 
     fn ensure_on_gpu(&mut self, gpu: &mut Gpu) {
         if self.shader_module.is_some() {
