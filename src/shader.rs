@@ -18,7 +18,12 @@ pub struct Shader<V: Variables, F: Variables, G: Globals> {
     vertex_data: PhantomData<V>,
     fragment_data: PhantomData<F>,
     globals: PhantomData<G>,
-    shader_module: Option<wgpu::ShaderModule>,
+    wgpu_shader: Option<WgpuShader>,
+}
+
+#[derive(Debug)]
+struct WgpuShader {
+    module: wgpu::ShaderModule,
 }
 
 impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
@@ -70,7 +75,7 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
     // multiply by three when passing to render_pass.draw_indexed
 
     fn ensure_on_gpu(&mut self, gpu: &mut Gpu) {
-        if self.shader_module.is_some() {
+        if self.wgpu_shader.is_some() {
             return;
         }
         /* TODO: style
@@ -115,13 +120,14 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
         }
         */
         let source = self.get_source();
-        self.shader_module = Some(
-            gpu.device
+        self.wgpu_shader = Some(WgpuShader {
+            module: gpu
+                .device
                 .create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: None, // TODO: maybe allow a label
                     source: wgpu::ShaderSource::Wgsl(source.into()),
                 }),
-        );
+        });
 
         // TODO: add pipeline_layout & render_pipeline
     }

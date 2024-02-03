@@ -178,6 +178,8 @@ impl Window {
     }
 
     // TODO: call this on Ctrl+Z -> Resume so time doesn't go crazy
+    //       -> may need to switch to signal-hook instead of ctrlc crate.
+    // https://docs.rs/signal-hook/latest/signal_hook/#a-complex-signal-handling-with-a-background-thread
     fn reset_frame_wait(&mut self) -> time::Duration {
         let new_instant = time::Instant::now();
         self.last_frame_instant = new_instant;

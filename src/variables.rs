@@ -49,6 +49,18 @@ impl Variable {
             Variable::Matrix4f(Metadata { name, .. }) => &name,
         }
     }
+
+    pub fn bytes(&self) -> usize {
+        match self {
+            Variable::Vector2f(_) => Self::BYTES_PER_32 * 2,
+            Variable::Vector3f(_) => Self::BYTES_PER_32 * 3,
+            Variable::Vector4f(_) => Self::BYTES_PER_32 * 4,
+            Variable::Matrix4f(_) => Self::BYTES_PER_32 * 4 * 4,
+        }
+    }
+
+    /// Number of bytes in e.g. an f32 or i32.
+    pub const BYTES_PER_32: usize = 4;
 }
 
 #[derive(Clone, PartialEq, Eq, Debug)]
@@ -218,6 +230,36 @@ mod test {
             @location(29) my_vector3f: vec3<f32>,\n    \
             @location(17) my_vector4f: vec4<f32>,\n\
             }\n",
+        );
+    }
+
+    #[test]
+    fn test_variables_bytes_per_32() {
+        assert_eq!(Variable::BYTES_PER_32, std::mem::size_of::<f32>());
+        assert_eq!(Variable::BYTES_PER_32, std::mem::size_of::<i32>());
+    }
+
+    #[test]
+    fn test_variables_bytes() {
+        let metadata = Metadata {
+            name: "whatever".into(),
+            location: Location::Index(12345),
+        };
+        assert_eq!(
+            Variable::Vector2f(metadata.clone()).bytes(),
+            std::mem::size_of::<f32>() * 2
+        );
+        assert_eq!(
+            Variable::Vector3f(metadata.clone()).bytes(),
+            std::mem::size_of::<f32>() * 3
+        );
+        assert_eq!(
+            Variable::Vector4f(metadata.clone()).bytes(),
+            std::mem::size_of::<f32>() * 4
+        );
+        assert_eq!(
+            Variable::Matrix4f(metadata.clone()).bytes(),
+            std::mem::size_of::<f32>() * 16
         );
     }
 }

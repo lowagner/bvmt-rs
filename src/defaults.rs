@@ -79,7 +79,7 @@ mod test {
     }
 
     #[test]
-    fn test_default_globals_uses_group_0_binding_0() {
+    fn test_default_globals_uses_group_0() {
         let globals = DefaultGlobals::default();
         let binds = globals.binds();
         assert_eq!(binds.len(), 1);
