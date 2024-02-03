@@ -27,6 +27,8 @@ pub struct Pixels {
     // TODO: use this in SamplerDescriptor { mag_filter: wgpu::FilterMode::Linear }
     //       if interpolated, otherwise {mag_filter: wgpu::FilterMode::Nearest }.
     pub interpolated: bool,
+    /// The label for these pixels.
+    pub label: Option<String>,
 }
 
 impl Pixels {
@@ -37,6 +39,18 @@ impl Pixels {
             array: Self::transparent_pixels_array(size),
             texture: None,
             interpolated: false,
+            label: None,
+        }
+    }
+
+    pub fn labeled(label: String, size: Size2i) -> Self {
+        Self {
+            size,
+            synced: Synced::CpuOnly,
+            array: Self::transparent_pixels_array(size),
+            texture: None,
+            interpolated: false,
+            label: Some(label),
         }
     }
 

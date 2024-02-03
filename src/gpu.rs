@@ -50,6 +50,21 @@ impl Gpu {
             array: vec![],
             texture: Some(texture),
             interpolated: false,
+            label: None,
+        }
+    }
+
+    /// Creates a `Pixels` instance with the given label and size; these pixels will
+    /// only live on the GPU, unless their data is requested on the CPU at a later time.
+    pub fn pixels_labeled(&mut self, label: String, size: Size2i) -> Pixels {
+        let texture = self.create_texture(size);
+        Pixels {
+            size,
+            synced: Synced::GpuOnly,
+            array: vec![],
+            texture: Some(texture),
+            interpolated: false,
+            label: Some(label),
         }
     }
 

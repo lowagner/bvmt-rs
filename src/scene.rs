@@ -21,7 +21,7 @@ impl Scene {
         self.draw_on_texture(
             gpu,
             pixels.texture.as_mut().expect("ensured on GPU"),
-            None,
+            pixels.label.as_ref().map(|l| l.as_str()),
             draw_callback,
         )
     }
