@@ -49,7 +49,6 @@ impl Globals for DefaultGlobals {
     fn binds<'a>(&'a self) -> Vec<Bind<'a>> {
         vec![Bind::Struct(
             0,
-            0,
             UniformStruct {
                 name: "Globals",
                 values: vec![Value::Matrix4f("view", &self.view)],
@@ -68,7 +67,7 @@ mod test {
         let globals = DefaultGlobals::default();
         for bind in globals.binds() {
             match bind {
-                Bind::Struct(_, _, uniform_struct) => {
+                Bind::Struct(_, uniform_struct) => {
                     for value in uniform_struct.values {
                         globals_count += 1;
                     }
@@ -81,14 +80,12 @@ mod test {
 
     #[test]
     fn test_default_globals_uses_group_0_binding_0() {
-        let mut globals_count = 0;
         let globals = DefaultGlobals::default();
         let binds = globals.binds();
         assert_eq!(binds.len(), 1);
         match &binds[0] {
-            Bind::Struct(group, binding, _) => {
+            Bind::Struct(group, _) => {
                 assert_eq!(*group, 0);
-                assert_eq!(*binding, 0);
             }
             bind => panic!("unexpected global: {:?}\n", bind),
         }
@@ -98,7 +95,7 @@ mod test {
     fn test_default_globals_initializes_view_to_identity() {
         let globals = DefaultGlobals::default();
         match &globals.binds()[0] {
-            Bind::Struct(_, _, uniform_struct) => {
+            Bind::Struct(_, uniform_struct) => {
                 assert_eq!(uniform_struct.name, "Globals");
                 assert_eq!(
                     uniform_struct.values,
@@ -117,7 +114,7 @@ mod test {
         globals.view.z = Vector4f::new(400.0, 300.0, 200.0, 100.0);
         globals.view.w = Vector4f::new(4000.0, 3000.0, 2000.0, 1000.0);
         match &globals.binds()[0] {
-            Bind::Struct(_, _, uniform_struct) => {
+            Bind::Struct(_, uniform_struct) => {
                 assert_eq!(uniform_struct.name, "Globals");
                 assert_eq!(
                     uniform_struct.values,

@@ -7,23 +7,16 @@ use crate::variables::Value;
 #[derive(Clone, Debug)]
 pub enum Bind<'a> {
     /// Creates a uniform struct.
-    Struct(u16, u16, UniformStruct<'a>),
-    Pixels(u16, u16, &'a Pixels),
+    Struct(u16, UniformStruct<'a>),
+    Pixels(u16, &'a Pixels),
     // TODO: Sampler based on what the Pixels wants.
 }
 
 impl<'a> Bind<'a> {
     pub fn group(&self) -> u16 {
         match self {
-            Bind::Struct(group, _, _) => *group,
-            Bind::Pixels(group, _, _) => *group,
-        }
-    }
-
-    pub fn binding(&self) -> u16 {
-        match self {
-            Bind::Struct(_, binding, _) => *binding,
-            Bind::Pixels(_, binding, _) => *binding,
+            Bind::Struct(group, _) => *group,
+            Bind::Pixels(group, _) => *group,
         }
     }
 }
@@ -56,7 +49,6 @@ mod test {
         assert_eq!(
             Bind::Struct(
                 12,
-                13,
                 UniformStruct {
                     name: "Whatever",
                     values: vec![]
@@ -67,7 +59,7 @@ mod test {
         );
 
         assert_eq!(
-            Bind::Pixels(32, 43, &Pixels::new(Size2i::new(8, 4)),).group(),
+            Bind::Pixels(32, &Pixels::new(Size2i::new(8, 4)),).group(),
             32,
         );
     }

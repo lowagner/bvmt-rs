@@ -244,7 +244,6 @@ impl Globals for WindowGlobals {
         vec![
             Bind::Struct(
                 0,
-                0,
                 UniformStruct {
                     name: "Globals",
                     // NOTE! `background` should *not* be in this list of binds.
@@ -256,7 +255,7 @@ impl Globals for WindowGlobals {
                     ],
                 },
             ),
-            Bind::Pixels(1, 0, &self.pixels),
+            Bind::Pixels(1, &self.pixels),
         ]
     }
 }
