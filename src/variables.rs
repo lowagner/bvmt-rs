@@ -83,6 +83,16 @@ pub enum Location {
     BuiltIn(BuiltIn),
 }
 
+impl Location {
+    /// Returns the index if this is an indexed location.
+    fn index(&self) -> Option<u16> {
+        match self {
+            Location::Index(index) => Some(*index),
+            _ => None,
+        }
+    }
+}
+
 impl fmt::Display for Location {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -261,5 +271,12 @@ mod test {
             Variable::Matrix4f(metadata.clone()).bytes(),
             std::mem::size_of::<f32>() * 16
         );
+    }
+
+    #[test]
+    fn test_variables_location_index() {
+        assert_eq!(Location::Index(12345).index(), Some(12345));
+        assert_eq!(Location::BuiltIn(BuiltIn::ClipPosition).index(), None);
+        assert_eq!(Location::Index(9876).index(), Some(9876));
     }
 }
