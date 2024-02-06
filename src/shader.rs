@@ -15,6 +15,7 @@ can the globals go into both vertex and fragment functions?  or do we need separ
 */
 #[derive(Debug, Default)]
 pub struct Shader<V: Variables, F: Variables, G: Globals> {
+    pub label: Option<String>,
     vertex_data: PhantomData<V>,
     fragment_data: PhantomData<F>,
     globals: PhantomData<G>,
@@ -24,9 +25,21 @@ pub struct Shader<V: Variables, F: Variables, G: Globals> {
 #[derive(Debug)]
 struct WgpuShader {
     module: wgpu::ShaderModule,
+    pipeline: wgpu::RenderPipeline,
+    bind_group_layouts: Vec<wgpu::BindGroupLayout>,
 }
 
 impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
+    pub fn labeled(label: String) -> Self {
+        Self {
+            label: Some(label),
+            vertex_data: PhantomData,
+            fragment_data: PhantomData,
+            globals: PhantomData,
+            wgpu_shader: None,
+        }
+    }
+
     /// Draws to the specified `pixels` with a shader.
     pub fn draw(
         &mut self,
@@ -120,20 +133,116 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
         }
         */
         let source = self.get_source();
-        self.wgpu_shader = Some(WgpuShader {
-            module: gpu
-                .device
-                .create_shader_module(wgpu::ShaderModuleDescriptor {
-                    label: None, // TODO: maybe allow a label
-                    source: wgpu::ShaderSource::Wgsl(source.into()),
-                }),
-        });
+        let module = gpu
+            .device
+            .create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: None, // TODO: maybe allow a label
+                source: wgpu::ShaderSource::Wgsl(source.into()),
+            });
 
-        // TODO: add pipeline_layout & render_pipeline
+        let bind_group_layouts = vec![];
+
+        let pipeline_layout = gpu
+            .device
+            .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: self.label.as_ref().map(|l| l.as_str()),
+                bind_group_layouts: &bind_group_layouts.iter().collect::<Vec<_>>()[..],
+                push_constant_ranges: &[],
+            });
+
+        let (array_stride, vertex_attributes) = Self::get_vertex_attributes();
+        let vertex_buffer_layout = wgpu::VertexBufferLayout {
+            array_stride,
+            step_mode: wgpu::VertexStepMode::Vertex,
+            attributes: &vertex_attributes,
+        };
+
+        let pipeline = gpu
+            .device
+            .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: self.label.as_ref().map(|l| l.as_str()),
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &module,
+                    entry_point: "vs_main",
+                    buffers: &[vertex_buffer_layout],
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &module,
+                    entry_point: "fs_main",
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: wgpu::TextureFormat::Rgba8Unorm,
+                        blend: Some(wgpu::BlendState {
+                            color: wgpu::BlendComponent::REPLACE,
+                            alpha: wgpu::BlendComponent::REPLACE,
+                        }),
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                }),
+                primitive: wgpu::PrimitiveState {
+                    topology: wgpu::PrimitiveTopology::TriangleList,
+                    strip_index_format: None,
+                    front_face: wgpu::FrontFace::Ccw,
+                    cull_mode: Some(wgpu::Face::Back),
+                    polygon_mode: wgpu::PolygonMode::Fill,
+                    unclipped_depth: false,
+                    conservative: false,
+                },
+                depth_stencil: Some(wgpu::DepthStencilState {
+                    format: wgpu::TextureFormat::Depth32Float,
+                    depth_write_enabled: true,
+                    depth_compare: wgpu::CompareFunction::Less,
+                    stencil: wgpu::StencilState::default(),
+                    bias: wgpu::DepthBiasState::default(),
+                }),
+                multisample: wgpu::MultisampleState {
+                    count: 1,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
+                multiview: None,
+            });
+
+        self.wgpu_shader = Some(WgpuShader {
+            module,
+            bind_group_layouts,
+            pipeline,
+        });
     }
 
     fn get_source(&self) -> String {
         // TODO:
         "".into()
+    }
+
+    /// Returns the stride and the vertex attributes.
+    fn get_vertex_attributes<'a>() -> (wgpu::BufferAddress, Vec<wgpu::VertexAttribute>) {
+        let mut attributes = vec![];
+        let mut offset: u64 = 0;
+        // Index into the shader for the next attribute.
+        let mut shader_location: u32 = 0;
+
+        for variable in V::list() {
+            assert_eq!(
+                shader_location,
+                variable
+                    .index()
+                    .expect("only indexed locations belong in the vertex shader")
+                    .into()
+            );
+
+            let (variable_bytes, variable_format) = variable.bytes_format();
+            attributes.push(wgpu::VertexAttribute {
+                offset,
+                shader_location,
+                format: variable_format,
+            });
+
+            shader_location += 1;
+            offset += variable_bytes as u64;
+        }
+
+        assert_eq!(offset as usize, std::mem::size_of::<V>());
+        (offset as wgpu::BufferAddress, attributes)
     }
 }

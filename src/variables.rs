@@ -26,7 +26,8 @@ pub enum Variable {
     Vector2f(Metadata),
     Vector3f(Metadata),
     Vector4f(Metadata),
-    Matrix4f(Metadata),
+    // TODO: think of a consistent way to do this.  probably need to reserve multiple locations (i.e., 4 Vector4f's).
+    // Matrix4f(Metadata),
 }
 
 impl<'a> Value<'a> {
@@ -46,16 +47,24 @@ impl Variable {
             Variable::Vector2f(Metadata { name, .. }) => &name,
             Variable::Vector3f(Metadata { name, .. }) => &name,
             Variable::Vector4f(Metadata { name, .. }) => &name,
-            Variable::Matrix4f(Metadata { name, .. }) => &name,
         }
     }
 
-    pub fn bytes(&self) -> usize {
+    pub fn index(&self) -> Option<u16> {
         match self {
-            Variable::Vector2f(_) => Self::BYTES_PER_32 * 2,
-            Variable::Vector3f(_) => Self::BYTES_PER_32 * 3,
-            Variable::Vector4f(_) => Self::BYTES_PER_32 * 4,
-            Variable::Matrix4f(_) => Self::BYTES_PER_32 * 4 * 4,
+            Variable::Vector2f(Metadata { location, .. }) => location.index(),
+            Variable::Vector3f(Metadata { location, .. }) => location.index(),
+            Variable::Vector4f(Metadata { location, .. }) => location.index(),
+        }
+    }
+
+    pub(crate) fn bytes_format(&self) -> (usize, wgpu::VertexFormat) {
+        match self {
+            Variable::Vector2f(_) => (Self::BYTES_PER_32 * 2, wgpu::VertexFormat::Float32x2),
+            Variable::Vector3f(_) => (Self::BYTES_PER_32 * 3, wgpu::VertexFormat::Float32x3),
+            Variable::Vector4f(_) => (Self::BYTES_PER_32 * 4, wgpu::VertexFormat::Float32x4),
+            // TODO: doesn't exist, need to make multiple attributes...
+            // Variable::Matrix4f(_) => wgpu::VertexFormat::Float32x4x4,
         }
     }
 
@@ -130,7 +139,6 @@ impl fmt::Display for VariablesStruct {
                 Variable::Vector2f(metadata) => write!(f, "    {}: vec2<f32>,\n", metadata)?,
                 Variable::Vector3f(metadata) => write!(f, "    {}: vec3<f32>,\n", metadata)?,
                 Variable::Vector4f(metadata) => write!(f, "    {}: vec4<f32>,\n", metadata)?,
-                Variable::Matrix4f(metadata) => write!(f, "    {}: mat4x4<f32>,\n", metadata)?,
             }
         }
         write!(f, "}}\n")
@@ -187,14 +195,6 @@ mod test {
             .name(),
             "one_two_three",
         );
-        assert_eq!(
-            Variable::Matrix4f(Metadata {
-                location: Location::Index(0),
-                name: "quad_tree".into()
-            })
-            .name(),
-            "quad_tree",
-        );
     }
 
     #[test]
@@ -250,26 +250,31 @@ mod test {
     }
 
     #[test]
-    fn test_variables_bytes() {
+    fn test_variables_bytes_format() {
         let metadata = Metadata {
             name: "whatever".into(),
             location: Location::Index(12345),
         };
         assert_eq!(
-            Variable::Vector2f(metadata.clone()).bytes(),
-            std::mem::size_of::<f32>() * 2
+            Variable::Vector2f(metadata.clone()).bytes_format(),
+            (
+                std::mem::size_of::<f32>() * 2,
+                wgpu::VertexFormat::Float32x2
+            )
         );
         assert_eq!(
-            Variable::Vector3f(metadata.clone()).bytes(),
-            std::mem::size_of::<f32>() * 3
+            Variable::Vector3f(metadata.clone()).bytes_format(),
+            (
+                std::mem::size_of::<f32>() * 3,
+                wgpu::VertexFormat::Float32x3
+            )
         );
         assert_eq!(
-            Variable::Vector4f(metadata.clone()).bytes(),
-            std::mem::size_of::<f32>() * 4
-        );
-        assert_eq!(
-            Variable::Matrix4f(metadata.clone()).bytes(),
-            std::mem::size_of::<f32>() * 16
+            Variable::Vector4f(metadata.clone()).bytes_format(),
+            (
+                std::mem::size_of::<f32>() * 4,
+                wgpu::VertexFormat::Float32x4
+            )
         );
     }
 
