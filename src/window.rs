@@ -48,6 +48,9 @@ impl Window {
 
     // TODO: add `shake` method that will erratically bounce the main window.bvmt
     // vertex coordinates when drawing to the window surface.
+    // ACTUALLY - don't add shake here, it makes more sense copying texture to texture.
+    // i.e., we want to support drawing to pixels outside the window so when shaking
+    // we get some of those pixels.  e.g., a 2 pixel border
 
     pub fn set_fps(&mut self, fps: f64) {
         self.set_frame_duration(time::Duration::from_nanos(
@@ -168,7 +171,14 @@ impl Window {
             &mut surface_texture.texture,
             Some("window"),
             |drawer| {
-                // TODO:
+                /* TODO
+                drawer.shade(
+                    &mut self.shader,
+                    &mut self.vertices,
+                    &mut self.fragments,
+                    &self.bvmt,
+                );
+                */
             },
         );
 
