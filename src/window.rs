@@ -107,7 +107,7 @@ impl Window {
             )
             .await
             .unwrap();
-        let mut gpu = Gpu { device, queue };
+        let mut gpu = Gpu::new(device, queue);
 
         let surface_capabilities = wgpu_surface.get_capabilities(&gpu_adapter);
         let surface_format = surface_capabilities
@@ -304,7 +304,7 @@ pub async fn run(mut app: Box<dyn App>) {
         eprint!("App shut down immediately...?\n");
         return;
     }
-
+    // TODO: window.render() doesn't help fix a weird blank window at the start of `cargo run`.
     event_loop
         .run(move |event: Event<()>, target| {
             if let Some(app_event) = handle_or_convert(event, &mut window, &target) {

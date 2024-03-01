@@ -18,17 +18,51 @@ pub use crate::vertices::Vertices;
 use crate::dimensions::*;
 use crate::options::*;
 
+use strum::{EnumCount, IntoEnumIterator};
+use strum_macros::{EnumCount, EnumIter};
+
 use std::iter;
+
+#[derive(Debug, EnumCount, EnumIter)]
+pub enum Sampler {
+    /** Grabs the nearest pixel; i.e., non-interpolated. */
+    Nearest,
+    /** Linear interpolation between pixels. */
+    Interpolate,
+    // TODO: RepeatedNearest
+    // TODO: RepeatedInterpolated
+}
 
 pub struct Gpu {
     pub(crate) device: wgpu::Device,
     pub(crate) queue: wgpu::Queue,
-    // TODO: add a list of samplers based on what pixel interpolation people want.
+    pub(crate) samplers: Vec<wgpu::Sampler>,
 }
 
 // TODO: how many commands actually need to modify device/queue?
 //       we probably can get away with `&mut Gpu` -> `& Gpu` everywhere.
 impl Gpu {
+    pub(crate) fn new(device: wgpu::Device, queue: wgpu::Queue) -> Self {
+        let samplers: Vec<wgpu::Sampler> = Sampler::iter()
+            .map(|sampler| match sampler {
+                Sampler::Nearest => device.create_sampler(&wgpu::SamplerDescriptor {
+                    mag_filter: wgpu::FilterMode::Nearest,
+                    ..Default::default()
+                }),
+                Sampler::Interpolate => device.create_sampler(&wgpu::SamplerDescriptor {
+                    mag_filter: wgpu::FilterMode::Linear,
+                    ..Default::default()
+                }),
+            })
+            .collect();
+        assert_eq!(samplers.len(), Sampler::COUNT);
+        Self {
+            device,
+            queue,
+            samplers,
+        }
+    }
+
     /// Flushes any commands sent to the GPU, e.g., for writing pixels from CPU to GPU memory.
     /// If you don't need a GPU update immediately, then prefer waiting for the
     /// screen drawing algorithm, which will effectively flush the GPU commands
@@ -40,8 +74,8 @@ impl Gpu {
 
     // TODO: copy(&mut self, from: DataHere { pixels: &mut Pixels, box2: Box2i }, to: DataHere)
 
-    /// Creates a `Pixels` instance with the given size; these pixels will
-    /// only live on the GPU, unless their data is requested on the CPU at a later time.
+    /// Creates a `Pixels` instance with the given size;
+    /// these pixels will start on the GPU but can be moved to the CPU later.
     pub fn pixels(&mut self, size: Size2i) -> Pixels {
         let texture = self.create_texture(size);
         Pixels {
