@@ -223,14 +223,14 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
         };
         // TODO: globals
         // TODO: use indoc here for nicer formatting
-        format!(
+        indoc::formatdoc!(
             r"
-{}
-{}
-{}
-@vertex fn vs_main(input: Vertex) -> Fragment {{{}}}
-@fragment fn fs_main(input: Fragment) -> @location(0) vec4<f32> {{{}}}
-",
+            {}
+            {}
+            {}
+            @vertex fn vs_main(input: Vertex) -> Fragment {}
+            @fragment fn fs_main(input: Fragment) -> @location(0) vec4<f32> {}
+            ",
             vertex_input,
             fragment_input,
             self.additional_definitions,
@@ -290,26 +290,26 @@ mod test {
 
         assert_eq!(
             shader.get_source(),
-            r"
-struct Vertex {
-    @location(0) position: vec3<f32>,
-    @location(1) color: vec3<f32>,
-}
-struct Fragment {
-    @builtin(position) clip_position: vec4<f32>,
-    @location(0) color: vec3<f32>,
-}
-fn my_func() -> vec3<f32> { return vec3<f32>(0.1, 0.2, 0.3); }
-@vertex fn vs_main(input: Vertex) -> Fragment {
-    var out: Fragment;
-    out.color = input.color;
-    out.clip_position = vec4<f32>(input.position, 1.0);
-    return out;
-}
-@fragment fn fs_main(input: Fragment) -> @location(0) vec4<f32> {
-    return vec4<f32>(input.color, 1.0);
-}
-"
+            indoc::indoc! {"
+                struct Vertex {
+                    @location(0) position: vec3<f32>,
+                    @location(1) color: vec3<f32>,
+                }
+                struct Fragment {
+                    @builtin(position) clip_position: vec4<f32>,
+                    @location(0) color: vec3<f32>,
+                }
+                fn my_func() -> vec3<f32> { return vec3<f32>(0.1, 0.2, 0.3); }
+                @vertex fn vs_main(input: Vertex) -> Fragment {
+                    var output: Fragment;
+                    output.color = input.color;
+                    output.clip_position = vec4<f32>(input.position, 1.0);
+                    return output;
+                }
+                @fragment fn fs_main(input: Fragment) -> @location(0) vec4<f32> {
+                    return vec4<f32>(input.color, 1.0);
+                }
+            "}
             .to_string()
         );
     }

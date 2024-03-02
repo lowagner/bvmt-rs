@@ -13,3 +13,4 @@ winit = { version = "0.29.9", features = ["rwh_05"] }
 wgpu = "0.18.0"
 strum = "0.26.1"
 strum_macros = "0.26.1"
+indoc = "2.0.4"

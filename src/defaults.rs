@@ -25,15 +25,14 @@ impl Variables for DefaultVertexVariables {
     }
 
     fn main() -> String {
-        // TODO: use indoc here for nicer formatting
-        // There is an implied `@vertex fn vs_main(input: Vertex) -> Fragment {`
-        // before this and `}` after.
-        r"
-    var out: Fragment;
-    out.color = input.color;
-    out.clip_position = vec4<f32>(input.position, 1.0);
-    return out;
-"
+        // There is an implied `@vertex fn vs_main(input: Vertex) -> Fragment` before this.
+        indoc::indoc! {"
+        {
+            var output: Fragment;
+            output.color = input.color;
+            output.clip_position = vec4<f32>(input.position, 1.0);
+            return output;
+        }"}
         .to_string()
     }
 }
@@ -56,12 +55,11 @@ impl Variables for DefaultFragmentVariables {
     }
 
     fn main() -> String {
-        // TODO: use indoc here for nicer formatting
-        // There is an implied `@fragment fn fs_main(input: Fragment) -> @location(0) vec4<f32> {`
-        // before this and `}` after.  Note that the returned vec4 is a color with alpha.
-        r"
-    return vec4<f32>(input.color, 1.0);
-"
+        // There is an implied `@fragment fn fs_main(input: Fragment) -> @location(0) vec4<f32>`.
+        indoc::indoc! {"
+        {
+            return vec4<f32>(input.color, 1.0);
+        }"}
         .to_string()
     }
 }
