@@ -16,6 +16,7 @@ can the globals go into both vertex and fragment functions?  or do we need separ
 #[derive(Debug, Default)]
 pub struct Shader<V: Variables, F: Variables, G: Globals> {
     pub label: Option<String>,
+    pub additional_definitions: String,
     vertex_data: PhantomData<V>,
     fragment_data: PhantomData<F>,
     globals: PhantomData<G>,
@@ -33,6 +34,7 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
     pub fn labeled(label: String) -> Self {
         Self {
             label: Some(label),
+            additional_definitions: "".to_string(),
             vertex_data: PhantomData,
             fragment_data: PhantomData,
             globals: PhantomData,
@@ -117,7 +119,7 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
         var pixels_sampler: sampler;
         // vertex shader
         @vertex
-        fn vs_main(vertex: Vertex) -> Fragment {
+        fn vs_main(input: Vertex) -> Fragment {
             var fragment: Fragment;
             fragment.clip_position = ...;
             fragment.uv = ...;
@@ -127,7 +129,7 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
         }
         // fragment shader
         @fragment
-        fn fs_main(in: Fragment) -> @location(0) vec4<f32> {
+        fn fs_main(input: Fragment) -> @location(0) vec4<f32> {
             // Return color to use for this pixel.
             return vec4<f32>(r, g, b, 1.0);
         }
@@ -211,8 +213,30 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
     }
 
     fn get_source(&self) -> String {
-        // TODO:
-        "".into()
+        let vertex_input = VariablesStruct {
+            name: "Vertex".into(),
+            variables: V::list(),
+        };
+        let fragment_input = VariablesStruct {
+            name: "Fragment".into(),
+            variables: F::list(),
+        };
+        // TODO: globals
+        // TODO: use indoc here for nicer formatting
+        format!(
+            r"
+{}
+{}
+{}
+@vertex fn vs_main(input: Vertex) -> Fragment {{{}}}
+@fragment fn fs_main(input: Fragment) -> @location(0) vec4<f32> {{{}}}
+",
+            vertex_input,
+            fragment_input,
+            self.additional_definitions,
+            V::main(),
+            F::main()
+        )
     }
 
     /// Returns the stride and the vertex attributes.
@@ -244,5 +268,49 @@ impl<V: Variables + bytemuck::Pod, F: Variables, G: Globals> Shader<V, F, G> {
 
         assert_eq!(offset as usize, std::mem::size_of::<V>());
         (offset as wgpu::BufferAddress, attributes)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_default_shader() {
+        let shader: Shader<DefaultVertexVariables, DefaultFragmentVariables, DefaultGlobals> =
+            Shader {
+                label: Some("hello-shader".to_string()),
+                additional_definitions:
+                    "fn my_func() -> vec3<f32> { return vec3<f32>(0.1, 0.2, 0.3); }".to_string(),
+                vertex_data: PhantomData,
+                fragment_data: PhantomData,
+                globals: PhantomData,
+                wgpu_shader: None,
+            };
+
+        assert_eq!(
+            shader.get_source(),
+            r"
+struct Vertex {
+    @location(0) position: vec3<f32>,
+    @location(1) color: vec3<f32>,
+}
+struct Fragment {
+    @builtin(position) clip_position: vec4<f32>,
+    @location(0) color: vec3<f32>,
+}
+fn my_func() -> vec3<f32> { return vec3<f32>(0.1, 0.2, 0.3); }
+@vertex fn vs_main(input: Vertex) -> Fragment {
+    var out: Fragment;
+    out.color = input.color;
+    out.clip_position = vec4<f32>(input.position, 1.0);
+    return out;
+}
+@fragment fn fs_main(input: Fragment) -> @location(0) vec4<f32> {
+    return vec4<f32>(input.color, 1.0);
+}
+"
+            .to_string()
+        );
     }
 }

@@ -6,8 +6,11 @@ pub use crate::defaults::{DefaultFragmentVariables, DefaultGlobals, DefaultVerte
 
 /// A group of variables (field names + field values) that has some reflection
 /// properties, i.e., the ability to return a list of all variable descriptions.
+// TODO: probably should rename since this is a fragment or a vertex shader's main function as well.
 pub trait Variables {
     fn list() -> Vec<Variable>;
+    /// Main function block for the vertex/fragment shader, i.e., vs_main or fs_main.
+    fn main() -> String;
 }
 
 /// A variable value (i.e., to pass to the GPU shader).
@@ -141,7 +144,7 @@ impl fmt::Display for VariablesStruct {
                 Variable::Vector4f(metadata) => write!(f, "    {}: vec4<f32>,\n", metadata)?,
             }
         }
-        write!(f, "}}\n")
+        write!(f, "}}")
     }
 }
 
@@ -239,7 +242,7 @@ mod test {
             @location(3) my_vector2f: vec2<f32>,\n    \
             @location(29) my_vector3f: vec3<f32>,\n    \
             @location(17) my_vector4f: vec4<f32>,\n\
-            }\n",
+            }",
         );
     }
 

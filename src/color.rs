@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use crate::dimensions::{Vector3f, Vector4f};
+
 use bytemuck::{Pod, Zeroable};
 
 #[repr(C)]
@@ -69,6 +71,27 @@ impl From<Color> for wgpu::Color {
             g: color.g as f64 / 255.0,
             b: color.b as f64 / 255.0,
             a: color.a as f64 / 255.0,
+        }
+    }
+}
+
+impl From<Color> for Vector4f {
+    fn from(color: Color) -> Vector4f {
+        Self {
+            x: color.r as f32 / 255.0,
+            y: color.g as f32 / 255.0,
+            z: color.b as f32 / 255.0,
+            w: color.a as f32 / 255.0,
+        }
+    }
+}
+
+impl From<Color> for Vector3f {
+    fn from(color: Color) -> Vector3f {
+        Self {
+            x: color.r as f32 / 255.0,
+            y: color.g as f32 / 255.0,
+            z: color.b as f32 / 255.0,
         }
     }
 }

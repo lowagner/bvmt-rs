@@ -6,16 +6,35 @@ use bytemuck::{Pod, Zeroable};
 #[repr(C)]
 #[derive(Copy, Clone, PartialEq, Debug, Default, Pod, Zeroable)]
 pub struct DefaultVertexVariables {
-    location: Vector3f,
-    // TODO: add color
+    position: Vector3f,
+    color: Vector3f,
 }
 
 impl Variables for DefaultVertexVariables {
     fn list() -> Vec<Variable> {
-        vec![Variable::Vector3f(Metadata {
-            name: "location".into(),
-            location: Location::Index(0),
-        })]
+        vec![
+            Variable::Vector3f(Metadata {
+                name: "position".into(),
+                location: Location::Index(0),
+            }),
+            Variable::Vector3f(Metadata {
+                name: "color".into(),
+                location: Location::Index(1),
+            }),
+        ]
+    }
+
+    fn main() -> String {
+        // TODO: use indoc here for nicer formatting
+        // There is an implied `@vertex fn vs_main(input: Vertex) -> Fragment {`
+        // before this and `}` after.
+        r"
+    var out: Fragment;
+    out.color = input.color;
+    out.clip_position = vec4<f32>(input.position, 1.0);
+    return out;
+"
+        .to_string()
     }
 }
 
@@ -23,12 +42,27 @@ impl Variables for DefaultVertexVariables {
 pub struct DefaultFragmentVariables {
     // Note that we don't need to add these variables into the `Fragment`s,
     // since this is only constructed on the GPU via the vertex shader.
-    // TODO: add color
 }
 
 impl Variables for DefaultFragmentVariables {
     fn list() -> Vec<Variable> {
-        vec![built_in(BuiltIn::ClipPosition)]
+        vec![
+            built_in(BuiltIn::ClipPosition),
+            Variable::Vector3f(Metadata {
+                name: "color".into(),
+                location: Location::Index(0),
+            }),
+        ]
+    }
+
+    fn main() -> String {
+        // TODO: use indoc here for nicer formatting
+        // There is an implied `@fragment fn fs_main(input: Fragment) -> @location(0) vec4<f32> {`
+        // before this and `}` after.  Note that the returned vec4 is a color with alpha.
+        r"
+    return vec4<f32>(input.color, 1.0);
+"
+        .to_string()
     }
 }
 
