@@ -1,0 +1,9 @@
+wishlist
+* switch to bevy
+* use networking (e.g., renet or lightyear)
+* use client and server framework.
+* allow for multiple clients on the same device.
+* for same device, gamepads should be associated to one client only.
+* add a control sequence for gamepads to switch clients.
+* if no server available, client will boot a server
+* ideally if originating client quits, server will continue if another client joined
